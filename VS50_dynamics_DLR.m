@@ -210,29 +210,10 @@ for i = 1:(n-1)
     
     %% Attitude Integration using Quaternion Cinematics  
     
-    W(i+1,:)   = W(i,:)   + ang_acc(i,:) * dt;
+    [W(i+1,:), W_b(i+1,:), q(i+1,:), angles(i+1,:)] = Rotation_Integration(W(i,:), W_b(i,:), ang_acc(i,:), D_NB, q(i,:), dt );
     
-    W_b(i+1,:) = W_b(i,:) + ( D_NB * ang_acc(i,:)' )' * dt;
-           
-    S = [   0      -W_b(i,1) -W_b(i,2) -W_b(i,3);
-          W_b(i,1)    0       W_b(i,3) -W_b(i,2);
-          W_b(i,2) -W_b(i,3)    0       W_b(i,1);
-          W_b(i,3)  W_b(i,2) -W_b(i,1)    0     ];
-
-    w_b = norm([W_b(i,1); W_b(i,2); W_b(i,3)]);
-
-    if w_b ~= 0
-        Exp_Omega_k_T = cos(w_b*dt/2)*eye(4) + (1/w_b)*sin(w_b*dt/2)*S;
-    else
-        Exp_Omega_k_T = eye(4) + (dt/2)*S;
-    end
-
-    q(i+1,:) = ( Exp_Omega_k_T * q(i,:)' )';
-    q(i+1,:) = q(i+1,:) / norm(q(i+1,:));         %normalização do quaternion
-
-    [pitch yaw roll] = quat2angle(q(i+1,:), 'XYZ');       
-    angles(i+1,:) = [pitch yaw roll];
-    angles_deg(i+1,:) = [pitch yaw roll] * 180/pi;
+    angles_deg(i+1,:) = angles(i+1,:) * 180/pi;
+    
     
 end
 
