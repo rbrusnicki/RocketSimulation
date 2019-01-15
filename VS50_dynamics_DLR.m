@@ -129,7 +129,9 @@ for i = 1:(n-1)
 
     Act_b(i,:) = [-0.141 * pi/180, 0];                   %%%%%%%%%%%%%%%% R#!%#$%@$¨%@$&%$@¨$#¨$#¨@¨$ OVERWRITING FOR DEBUG
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+%% FORCES
+
     %% Força de Empuxo no Triedo do Corpo do DLR 
     FE_b(i,:) = Thrust_Force_in_DLR_Body_Reference_System(Fe(i)-Patm(i)*Nzl_S , Act_b(i,:));
 
@@ -147,8 +149,9 @@ for i = 1:(n-1)
 
     %% Força de Coriolis no triedo de Navegação do DLR
     FCo(i,:) = Coriolis_Force_in_DLR_Navigation_Reference_System(D_NB, M_p(i), W_b(i,:), CoG(i), le);
+    
+%% MOMENTS
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Momento de Coriolis
     MCo(i,:) = Coriolis_Moment_in_DLR_Navigation_Reference_System(Ixx_p(i), Iyy_p(i), Izz_p(i), D_NB, M_p(i), W_b(i,:), CoG(i), le);
 
@@ -165,7 +168,8 @@ for i = 1:(n-1)
     Coef = diag([ Cmq(i,:), Cnr(i,:), Clp(i,:)]);
     MA_d(i,:) = Aerodynamic_Damping_Moment(D_NB, W_b(i,:), Coef, Pdin(i,:), V(i,:), V_wind(i,:));
        
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ACELERATIONS
+
     %% Aceleration in DLR Navigation Reference System
     % If thrust force is smaller than gravitational force, aceleration must be zero at the beginning
     if norm(FE(i,:)) < norm(FG(i,:)) && i*dt < 30
@@ -181,86 +185,35 @@ for i = 1:(n-1)
     
     ang_acc(i,:) = (D_NB' * ang_acc_b)'; %NRS
     
-    %% Runge-Kutta
     
-    % INICIALIZAÇÃO
+%% INTEGRATIONS
+
+    %% Translation Integration using 4th order Runge-Kutta
+     
     if i==1
         x = zeros(n,2);              % initial value of x [m] and x' [m/s]  at time 0 [s] 
         y = zeros(n,2);              % initial value of y [m] and y' [m/s]  at time 0 [s] 
         z = zeros(n,2);              % initial value of z [m] and z' [m/s]  at time 0 [s]     
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
-    % TRANSLAÇÃO (POSIÇÃO E VELOCIDADE)
+    xyz = [x(i,:), y(i,:), z(i,:)];
     
-    fx = @(t, x) [ x(2) + acc(i,1) * t  , acc(i,1) ];
-    fy = @(t, y) [ y(2) + acc(i,2) * t  , acc(i,2) ];
-    fz = @(t, z) [ z(2) + acc(i,3) * t  , acc(i,3) ];
+    [position, V(i+1,:), XYZ] = Translation_Integration(xyz, latd(i), lon(i), alt(i), acc(i,:), dt);
     
-    k1 = fx( 0       ,    x(i,:)                );
-    k2 = fx( 0.5 * dt,    x(i,:) + 0.5 * dt * k1);
-    k3 = fx( 0.5 * dt,    x(i,:) + 0.5 * dt * k2);
-    k4 = fx( 0       ,    x(i,:) + 1.0 * dt * k3);
-    x(i+1,:) = x(i,:) + (1/6)*(k1 + 2*k2 + 2*k3 + k4)*dt; 
+    latd(i+1) = position(1);
+    lon(i+1)  = position(2);
+    alt(i+1)  = position(3);
     
-    k1 = fy( 0       ,    y(i,:)                );
-    k2 = fy( 0.5 * dt,    y(i,:) + 0.5 * dt * k1);
-    k3 = fy( 0.5 * dt,    y(i,:) + 0.5 * dt * k2);
-    k4 = fy( 0       ,    y(i,:) + 1.0 * dt * k3);
-    y(i+1,:) = y(i,:) + (1/6)*(k1 + 2*k2 + 2*k3 + k4)*dt; 
+    x(i+1,:) = XYZ(1:2);
+    y(i+1,:) = XYZ(3:4);
+    z(i+1,:) = XYZ(5:6);
     
-    k1 = fz( 0       ,    z(i,:)                );
-    k2 = fz( 0.5 * dt,    z(i,:) + 0.5 * dt * k1);
-    k3 = fz( 0.5 * dt,    z(i,:) + 0.5 * dt * k2);
-    k4 = fz( 0       ,    z(i,:) + 1.0 * dt * k3);
-    z(i+1,:) = z(i,:) + (1/6)*(k1 + 2*k2 + 2*k3 + k4)*dt; 
+    %% Attitude Integration using Quaternion Cinematics  
     
-        
-    R_e = 6378137;                                             %Raio equatorial                     [m]
-    f = 1/298.257223563;                                       %Achatamento polar terrestre         [-]
-    D_l = f * sin(2*latd(i)) * (1 - f/2 + 2*f*sin(latd(i))^2); %latd - latc                         [rad]
-    L_C = latd(i) - D_l;                                       %geocentric latitude                 [rad]
-    R_l = R_e / sqrt( 1 + ((1-f)^-2 - 1) * sin(L_C)^2 );       %Raio local do elipsóide terrestre   [m]
-    R_l = R_l + alt(i);                    %Total radius from center of earth until the vehicle     [m]
-    R_lh = R_l * cos(L_C);                 %Radius of the circle of earth with constant latitude    [m]
+    [W(i+1,:), W_b(i+1,:), q(i+1,:), angles(i+1,:)] = Rotation_Integration(W(i,:), W_b(i,:), ang_acc(i,:), D_NB, q(i,:), dt );
     
-    latd(i+1) = latd(i) + (1/R_l ) * (x(i+1,1) - x(i,1)) ;
-    lon(i+1)  = lon(i)  - (1/R_lh) * (y(i+1,1) - y(i,1)) ;
-    alt(i+1)  = alt(i)  +            (z(i+1,1) - z(i,1)) ;
+    angles_deg(i+1,:) = angles(i+1,:) * 180/pi;
     
-    V(i+1,:)  = [x(i+1,2), y(i+1,2), z(i+1,2)];
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % ROTAÇÃO (QUATERNION E VELOCIDADE ANGULAR)  
-    W(i+1,:)   = W(i,:)   + ang_acc(i,:) * dt;
-    
-    W_b(i+1,:) = W_b(i,:) + ( D_NB * ang_acc(i,:)' )' * dt;
-        
-%    W_b(i+1,:) = ( DCM(i+1) *  W(i+1,:)' )';
-    
-%    W_b(i+1,3) = 10 * pi/180;
-%    W(i+1,:) = ( DCM' *  W_b(i+1,:)' )';
-% Apagar/comentar as duas linhas acima para retirar o rolamento fixo ¨%$¨%&¨#%%%$&¨%#¨&*¨¨@$%@#$$%@$%$#%@#$¨%$@¨$@¨%$@¨$@¨@$%$#¨%$¨$@¨¨%*)_)(_()%¨$#%¨()_)(*&¨%$#@#
-    
-    S = [   0      -W_b(i,1) -W_b(i,2) -W_b(i,3);
-          W_b(i,1)    0       W_b(i,3) -W_b(i,2);
-          W_b(i,2) -W_b(i,3)    0       W_b(i,1);
-          W_b(i,3)  W_b(i,2) -W_b(i,1)    0     ];
-
-    w_b = norm([W_b(i,1); W_b(i,2); W_b(i,3)]);
-
-    if w_b ~= 0
-        Exp_Omega_k_T = cos(w_b*dt/2)*eye(4) + (1/w_b)*sin(w_b*dt/2)*S;
-    else
-        Exp_Omega_k_T = eye(4) + (dt/2)*S;
-    end
-
-    q(i+1,:) = ( Exp_Omega_k_T * q(i,:)' )';
-    q(i+1,:) = q(i+1,:) / norm(q(i+1,:));         %normalização do quaternion
-
-    [pitch yaw roll] = quat2angle(q(i+1,:), 'XYZ');       
-    angles(i+1,:) = [pitch yaw roll];
-    angles_deg(i+1,:) = [pitch yaw roll] * 180/pi;
     
 end
 
