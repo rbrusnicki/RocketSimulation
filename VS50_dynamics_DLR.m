@@ -176,30 +176,10 @@ for i = 1:(n-1)
     
     %% Angular Aceleration in DLR Navigation Reference System
     I = diag([Ixx(i), Iyy(i), Izz(i)]); %BRS
+  
+    ang_acc_b = Angular_Aceleration_in_DLR_Body_Reference_System(I, W_b(i,:), D_NB, MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) ); %BRS
     
-    Mextra_b = cross(W_b(i,:)', I*W_b(i,:)')'; %BRS
-    
-    q0 = q(i,1);  % escalar component
-    q1 = q(i,2);  % ex
-    q2 = q(i,3);  % ey
-    q3 = q(i,4);  % ez
-    
-    % 'Rotates' from Navigation Reference System to Body Reference System
-    %If r1 is a vector writen in Nav. Ref. Sys., then DCM*r1 is the same vector writen in Body Ref. Sys.
-    %If r2 is a vector writen in Body Ref. Sys., then DCM'*r2 is the same vector writen in Nav. Ref. Sys.
-    DCM = [    1-2*q2^2-2*q3^2      2*(q1*q2+q0*q3)     2*(q1*q3-q0*q2);
-               2*(q1*q2-q0*q3)      1-2*q1^2-2*q3^2     2*(q2*q3+q0*q1);
-               2*(q1*q3+q0*q2)      2*(q2*q3-q0*q1)     1-2*q1^2-2*q2^2];
-
-    Mextra(i,:) = ( DCM' * Mextra_b' )'; %NRS
-    
-    I_times_ang_acc = ( 0*MCo(i,:)' + MFE(i,:)' + MFA(i,:)' - Mextra(i,:)' + MA_f(i,:)' + MA_d(i,:)' );  %NRS   %MA_f and MA_d not included yet   
-    
-    ang_acc_b = I\( DCM*I_times_ang_acc );  % BRS
-    
-    ang_acc(i,:) = (DCM' * ang_acc_b)'; %NRS
-    
-%     ang_acc(i,:) = [0; 0; 0]; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DEBUG
+    ang_acc(i,:) = (D_NB' * ang_acc_b)'; %NRS
     
     %% Runge-Kutta
     
@@ -254,7 +234,7 @@ for i = 1:(n-1)
     % ROTAÇÃO (QUATERNION E VELOCIDADE ANGULAR)  
     W(i+1,:)   = W(i,:)   + ang_acc(i,:) * dt;
     
-    W_b(i+1,:) = W_b(i,:) + ( DCM * ang_acc(i,:)' )' * dt;
+    W_b(i+1,:) = W_b(i,:) + ( D_NB * ang_acc(i,:)' )' * dt;
         
 %    W_b(i+1,:) = ( DCM(i+1) *  W(i+1,:)' )';
     
