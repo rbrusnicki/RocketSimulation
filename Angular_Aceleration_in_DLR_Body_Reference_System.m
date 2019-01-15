@@ -22,7 +22,7 @@ Mextra_b = cross(W_b', I*W_b')'; %BRS
 
 Mextra = ( D_NB' * Mextra_b' )'; %NRS
 
-I_times_ang_acc = ( 0*MCo' + MFE' + MFA' - Mextra' + MA_f' + MA_d' );  %NRS   
+I_times_ang_acc = ( MCo' + MFE' + MFA' - Mextra' + MA_f' + MA_d' );  %NRS   
 
 ang_acc_b = I\( D_NB*I_times_ang_acc );  % BRS
         
