@@ -163,7 +163,7 @@ for i = 1:(n-1)
     
     %% Momento Aerodinâmico de Amortecimento
     Coef = diag([ Cmq(i,:), Cnr(i,:), Clp(i,:)]);
-    MA_d(i,:) = Aerodynamic_Damping_Moment(q(i,:), W_b(i,:), Coef, Pdin(i,:), V(i,:), V_wind(i,:));
+    MA_d(i,:) = Aerodynamic_Damping_Moment(D_NB, W_b(i,:), Coef, Pdin(i,:), V(i,:), V_wind(i,:));
        
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Aceleration in DLR Navigation Reference System
