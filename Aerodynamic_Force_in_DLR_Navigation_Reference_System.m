@@ -1,4 +1,4 @@
-function [FA] = Aerodynamic_Force_in_DLR_Navigation_Reference_System(q, Cnalfa, Cnbeta, Cd, Pdin, AoA_pitch, AoA_yaw)
+function [FA] = Aerodynamic_Force_in_DLR_Navigation_Reference_System(q, Cnalfa, Cnbeta, Cd, Pdin, AoA_pitch, AoA_yaw, Sref)
 % Função que calcula a Força Aerodinamica em um determinado momento no Triedo de Navegação do DLR
 %
 % INPUT VETORIAL
@@ -18,11 +18,11 @@ function [FA] = Aerodynamic_Force_in_DLR_Navigation_Reference_System(q, Cnalfa, 
 % Autor: Roberto Brusnicki
 % Data: 12/12/18
 
-% Diâmetro do S50 [m]
-D = 1.46;               %    1.72;
-
-% Area de Referência
-Sref = pi * ( D/2 )^2;  
+% % Diâmetro do S50 [m]
+% D = 1.46;               %    1.72;
+% 
+% % Area de Referência
+% Sref = pi * ( D/2 )^2;  
 
 % DLR Euler Angles
 pitch = atan2( -2*q(3)*q(4) + 2*q(1)*q(2) ,  q(1)^2 - q(2)^2 - q(3)^2 + q(4)^2 );

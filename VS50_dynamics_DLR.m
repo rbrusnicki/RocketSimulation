@@ -14,6 +14,8 @@ Nzl_S = pi*(Nz_d)^2;             % Nozzle exit area                             
 
 dt = 0.01;                      % Incremento de tempo utilizado                             [s]
 T  = 85;                        % Tempo total de simulação                                  [s]
+Dref = 1.46;                   % Diametro de referência do veículo                         [m]
+Sref = pi * (Dref/2)^2;       % Area de referência do veículo                             [m]
 
 % gera_data();
 load('2018-07-03_VS50_conf3_with_DLR_att_100Hz.mat');
@@ -49,12 +51,11 @@ Izz_p   = data_100hz(:,19);              % d(Izz)/dt                            
 %% Dados variantes de voo (LOGDATA)
 
 
-TVA_cmd     = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR NRS. [rad]    %(-)values produce (+)pitch and (+)yaw (left-hand rule)
-    
-TVA_cmd_b   = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR BRS. [rad]    %(-)values produce (-)pitch and (-)yaw (right-hand rule)
-Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315º and  225º [rad]
+% TVA_cmd     = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR NRS. [rad]    %(-)values produce (+)pitch and (+)yaw (left-hand rule)     
+% TVA_cmd_b   = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR BRS. [rad]    %(-)values produce (-)pitch and (-)yaw (right-hand rule)
+% TVA_b       = zeros(n,2);               % TVA nozzle pitch and yaw angles in DLR Body Ref. Sys.[rad]    %(-)values produce (-)pitch and (-)yaw (right-hand rule)
 
-TVA_b       = zeros(n,2);               % TVA nozzle pitch and yaw angles in DLR Body Ref. Sys.[rad]    %(-)values produce (-)pitch and (-)yaw (right-hand rule)
+Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315º and  225º [rad]
 Act_b       = zeros(n,2);               % Nozzle angle for actuators at 315º and at 225º       [rad]
 
 latd        = zeros(n,1);               % Geodetic Latitude of the Vehicle during flight       [rad]
@@ -88,12 +89,6 @@ MA_d        = zeros(n,3);               % Aerodynamic Damping Moment in DLR Nav.
 Mextra        = zeros(n,3);               %       [N.m]
 
 
-% for i=1:2000
-%     TVA_cmd(i,1) = 0.1 * pi/180 ;
-%     TVA_cmd(i,2) = 0.1 * pi/180 ;
-% end
-
-
 alt(1,1) = 50;                          % Initial Altitude                 [m]
 latd(1,1) = -2.31599 * pi/180;         % Initial Geodetic Latitud         [rad]
 lon(1,1) = -44.3677 * pi/180;         % Initial Longitude                [rad]
@@ -101,7 +96,7 @@ lon(1,1) = -44.3677 * pi/180;         % Initial Longitude                [rad]
 
 %%
 
-for i = 1:(n-1)
+for i = 1:n%(n-1)
     %% Pressão Dinâmica e Pressão Atmosférica local
     [Pdin(i), Patm(i)] = Dynamic_Pressure( alt(i), V(i,:), V_wind(i,:) );
     
@@ -112,11 +107,11 @@ for i = 1:(n-1)
     [AoA_pitch(i), AoA_yaw(i)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System(D_NB, V(i,:), V_wind(i,:));
     
     %% TVA command Conversion from Inertial To DLR Body Reference System
-    if i == 1
-        Act_cmd_b(i,:) = Act_Command_Conversion_Inertial_To_Body(TVA_cmd(i,:),         [0, 0], angles(i,3),        0);
-    else
-        Act_cmd_b(i,:) = Act_Command_Conversion_Inertial_To_Body(TVA_cmd(i,:), TVA_cmd(i-1,:), angles(i,3), W_b(i,3));
-    end
+%     if i == 1
+%         Act_cmd_b(i,:) = Act_Command_Conversion_Inertial_To_Body(TVA_cmd(i,:),         [0, 0], angles(i,3),        0);
+%     else
+%         Act_cmd_b(i,:) = Act_Command_Conversion_Inertial_To_Body(TVA_cmd(i,:), TVA_cmd(i-1,:), angles(i,3), W_b(i,3));
+%     end
     
     %% TVA's command input to TVA's plant output
     if i == 1
@@ -145,7 +140,7 @@ for i = 1:(n-1)
     FG_b(i,:) = Gravitational_Force_in_DLR_Body_Reference_System(D_NB, FG(i,:));
 
     %% Força Aerodinâmica no triedo de Navegação do DLR 
-    FA(i,:) = Aerodynamic_Force_in_DLR_Navigation_Reference_System(q(i,:), Cnalfa(i), Cnbeta(i), Cd(i), Pdin(i), AoA_pitch(i), AoA_yaw(i));
+    FA(i,:) = Aerodynamic_Force_in_DLR_Navigation_Reference_System(q(i,:), Cnalfa(i), Cnbeta(i), Cd(i), Pdin(i), AoA_pitch(i), AoA_yaw(i), Sref);
 
     %% Força de Coriolis no triedo de Navegação do DLR
     FCo(i,:) = Coriolis_Force_in_DLR_Navigation_Reference_System(D_NB, M_p(i), W_b(i,:), CoG(i), le);
@@ -181,9 +176,16 @@ for i = 1:(n-1)
     %% Angular Aceleration in DLR Navigation Reference System
     I = diag([Ixx(i), Iyy(i), Izz(i)]); %BRS
   
-    ang_acc_b = Angular_Aceleration_in_DLR_Body_Reference_System(I, W_b(i,:), D_NB, MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) ); %BRS
+    ang_acc_b = Angular_Aceleration_in_DLR_BRS(I, W_b(i,:), D_NB, MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) ); %BRS
     
     ang_acc(i,:) = (D_NB' * ang_acc_b)'; %NRS
+ 
+%% M_ALPHA & M_BETA
+    
+    %% M_alpha
+%     M_alpha = M_alpha(Pdin(i,:), Cnalfa(i),  );
+    
+    %% M_beta
     
     
 %% INTEGRATIONS
@@ -241,55 +243,11 @@ axis equal;
 %% Clean up 
 clear('Coef'); clear('Mextra_b'); clear('x');   clear('y');     clear('z');     clear('ang_acc_b'); clear('I_times_ang_acc');
 clear('Ixx');  clear('Iyy');      clear('Izz'); clear('Ixx_p'); clear('Iyy_p'); clear('Izz_p');     clear('angles');
-clear('DCM');  clear('D_l');      clear('L_C'); clear('S');     clear('data');  clear('AoA_pitch'); clear('AoA_yaw');
+clear('D_NB'); clear('D_l');      clear('L_C'); clear('S');     clear('data');  clear('AoA_pitch'); clear('AoA_yaw');
 clear('Nz_d'); clear('Nzl_S');    clear('R_e'); clear('R_l');   clear('R_lh');  clear('data_size'); clear('Exp_Omega_k_T');
-clear('dt');   clear('f');        clear('fx');  clear('fy');    clear('fz');    clear('Fe_traj');   
-clear('i');    clear('le');       clear('n');   clear('pitch'); clear('yaw');   clear('roll');      
+clear('dt');   clear('f');        clear('fx');  clear('fy');    clear('fz');    clear('Fe_traj');   clear('XYZ');
+clear('i');    clear('le');       clear('n');   clear('pitch'); clear('yaw');   clear('roll');      clear('position');
 clear('q0');   clear('q1');       clear('q2');  clear('q3');    clear('w_b');   clear('alt_traj');          
 clear('k1');   clear('k2');       clear('k3');  clear('k4');    clear('dl');    clear('T'); 
-
-
-%%
-%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     % ROTAÇÃO (QUATERNION e VELOCIDADE ANGULAR) 
-
-    % INICIALIZAÇÃO
-%     if i==1
-%         H = [q, W];             
-%         H(1,1) = 1;     % initial value of q0  at time 0 [-]
-%         H(1,2) = 0;     % initial value of q1  at time 0 [-]
-%         H(1,3) = 0;     % initial value of q2  at time 0 [-]
-%         H(1,4) = 0;     % initial value of q3  at time 0 [-]
-%         H(1,5) = 0;     % initial value of wx  at time 0 [rad/s]
-%         H(1,6) = 0;     % initial value of wy  at time 0 [rad/s]
-%         H(1,7) = 0;     % initial value of wz  at time 0 [rad/s]       
-%     end
-%     
-%     h = @(t, H) [(skew( H(5:7)+ang_acc(i,:)*t , H(1:4) ) * H(1:4)')' , ang_acc(i,:) ];
-% 
-%     k1 = h( 0      ,    H(i,:)                );
-%     k2 = h( 0.5 *dt,    H(i,:) + 0.5 * dt * k1);
-%     k3 = h( 0.5 *dt,    H(i,:) + 0.5 * dt * k2);
-%     k4 = h( 0      ,    H(i,:) + 1.0 * dt * k3);
-%     H(i+1,:) = H(i,:) + (1/6)*(k1 + 2*k2 + 2*k3 + k4)*dt; 
-%     
-%     H(i+1,1:4) = H(i+1,1:4)/norm(H(i+1,1:4)); %normalização do quaternion
-%     q(i+1,:) = H(i+1,1:4);
-%     
-%     W(i+1,:) = H( i+1, 5:7);
-%    
-%     q0 = q(i,1);  % escalar component
-%     q1 = q(i,2);  % ex
-%     q2 = q(i,3);  % ey
-%     q3 = q(i,4);  % ez
-% 
-%     % Rotates from Navigation Reference System to Body Reference System
-%     DCM = [ (q0^2+q1^2-q2^2-q3^2)     2*(q1*q2+q0*q3)     2*(q1*q3-q0*q2);
-%                2*(q1*q2-q0*q3)      q0^2-q1^2+q2^2-q3^2   2*(q2*q3+q0*q1);
-%                2*(q1*q3+q0*q2)        2*(q2*q3-q0*q1)   q0^2-q1^2-q2^2+q3^2];
-% 
-%     W_b(i+1,:) = ( DCM *  W(i+1,:)' )'; 
-%     
-%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
 
 
