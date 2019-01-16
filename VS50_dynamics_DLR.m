@@ -14,8 +14,8 @@ Nzl_S = pi*(Nz_d)^2;             % Nozzle exit area                             
 
 dt = 0.01;                      % Incremento de tempo utilizado                             [s]
 T  = 85;                        % Tempo total de simulação                                  [s]
-Dref = 1.46;                   % Diametro de referência do veículo                         [m]
-Sref = pi * (Dref/2)^2;       % Area de referência do veículo                             [m]
+Dref = 1.46;  % 1.72            % Diametro de referência do veículo                         [m]
+Sref = pi * (Dref/2)^2;         % Area de referência do veículo                             [m]
 
 % gera_data();
 load('2018-07-03_VS50_conf3_with_DLR_att_100Hz.mat');
@@ -85,8 +85,10 @@ MFE         = zeros(n,3);               % Propulsive Moment in DLR Navigation Re
 MFA         = zeros(n,3);               % Aerodynamic Moment in DLR Navigation Reference Sys.  [N.m]
 MA_f        = zeros(n,3);               % Moment due to Fins Misalignment in DLR Nav. Ref. Sys.[N.m]
 MA_d        = zeros(n,3);               % Aerodynamic Damping Moment in DLR Nav. Ref. Sys.     [N.m]
+Mextra      = zeros(n,3);               %                                                      [N.m]
+M_alpha     = zeros(n,2);
+M_beta      = zeros(n,2);
 
-Mextra        = zeros(n,3);               %       [N.m]
 
 
 alt(1,1) = 50;                          % Initial Altitude                 [m]
@@ -176,17 +178,21 @@ for i = 1:n%(n-1)
     %% Angular Aceleration in DLR Navigation Reference System
     I = diag([Ixx(i), Iyy(i), Izz(i)]); %BRS
   
-    ang_acc_b = Angular_Aceleration_in_DLR_BRS(I, W_b(i,:), D_NB, MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) ); %BRS
+    ang_acc_b = Angular_Aceleration_in_DLR_Body_Reference_System(I, W_b(i,:), D_NB, MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) ); %BRS
     
     ang_acc(i,:) = (D_NB' * ang_acc_b)'; %NRS
  
 %% M_ALPHA & M_BETA
     
     %% M_alpha
-%     M_alpha = M_alpha(Pdin(i,:), Cnalfa(i),  );
+%     M_alpha(i,1) = Pdin(i,:) * Cnalfa(i) * Sref * (CoP(i) - CoG(i)) * AoA_pitch(i) / Ixx(i);
+    M_alpha(i,1) = Pdin(i,:) * Cnalfa(i) * Sref * (CoP(i) - CoG(i)) * (1 * pi / 180) / Ixx(i);
+    M_alpha(i,2) = Pdin(i,:) * Cnbeta(i) * Sref * (CoP(i) - CoG(i)) * AoA_yaw(i) / Iyy(i);
     
     %% M_beta
-    
+%     M_beta(i,1) = norm(FE(i,:)) * (le - CoG(i)) * Act_b(i,1) / Ixx(i);
+    M_beta(i,1) = norm(FE(i,:)) * (le - CoG(i)) * (-1 * pi / 180) / Ixx(i);
+    M_beta(i,2) = norm(FE(i,:)) * (le - CoG(i)) * Act_b(i,2) / Iyy(i);
     
 %% INTEGRATIONS
 
@@ -229,6 +235,8 @@ Act_b_deg = Act_b * 180/pi;
 
 lon = 180/pi * lon;
 latd = 180/pi * latd;
+
+M_alpha_beta_deg = [M_alpha(:,1), M_beta(:,1)] * 180/pi;
 
 
 %% Footprint versus Altitude
