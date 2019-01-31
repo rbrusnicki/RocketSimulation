@@ -26,7 +26,7 @@ k3 = fz( 0.5 * dt,    z + 0.5 * dt * k2);
 k4 = fz( 0       ,    z + 1.0 * dt * k3);
 Z = z + (1/6)*(k1 + 2*k2 + 2*k3 + k4)*dt; 
 
-
+w_t = 7.2921151467e-5;                                     %Velocidade angular da Terra         [rad/s]
 R_e = 6378137;                                             %Raio equatorial                     [m]
 f = 1/298.257223563;                                       %Achatamento polar terrestre         [-]
 D_l = f * sin(2*latd) * (1 - f/2 + 2*f*sin(latd)^2);       %latd - latc                         [rad]
@@ -36,7 +36,7 @@ R_l = R_l + alt;                       %Total radius from center of earth until 
 R_lh = R_l * cos(L_C);                 %Radius of the circle of earth with constant latitude    [m]
 
 Latd = latd + (1/R_l ) * (X(1) - x(1)) ;
-Lon  = lon  - (1/R_lh) * (Y(1) - y(1)) ;
+Lon  = lon  - (1/R_lh) * (Y(1) - y(1)) ; % - w_t * dt;
 Alt  = alt  +            (Z(1) - z(1)) ;
 
 position = [Latd, Lon, Alt];
