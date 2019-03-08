@@ -4,7 +4,9 @@
 	<Property Name="varPersistentID:{1CA98D36-3942-4C4E-AF54-CDB7D46C7B24}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/alt</Property>
 	<Property Name="varPersistentID:{35B9AC5F-1BC5-41D8-8862-AA23C94932EA}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/q</Property>
 	<Property Name="varPersistentID:{369569CA-7B62-4B6F-A033-841410811A58}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/lon</Property>
+	<Property Name="varPersistentID:{46A9E42E-5DB4-46D8-924B-1492299205A6}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/DMARS</Property>
 	<Property Name="varPersistentID:{4D4B5244-8201-4C51-B626-B31198FC9D54}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Pos</Property>
+	<Property Name="varPersistentID:{89452E4A-C408-4DE8-9FB6-2F9B0259FB22}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Stop</Property>
 	<Property Name="varPersistentID:{C29940F4-77C1-4980-ACE8-E6DE31862A5B}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/lat_c</Property>
 	<Property Name="varPersistentID:{DC9D5970-24DC-4E05-9C95-9DB112A7C952}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Euler_angles</Property>
 	<Item Name="My Computer" Type="My Computer">
@@ -49,6 +51,8 @@
 				<Item Name="Read BMP Header Info.vi" Type="VI" URL="/&lt;vilib&gt;/picture/bmp.llb/Read BMP Header Info.vi"/>
 				<Item Name="Read PNG File.vi" Type="VI" URL="/&lt;vilib&gt;/picture/png.llb/Read PNG File.vi"/>
 			</Item>
+			<Item Name="ECEF_2_LLA(SubVI).vi" Type="VI" URL="../ECEF_2_LLA(SubVI).vi"/>
+			<Item Name="LLA_2_ECEF(SubVI).vi" Type="VI" URL="../LLA_2_ECEF(SubVI).vi"/>
 			<Item Name="lvanlys.dll" Type="Document" URL="/&lt;resource&gt;/lvanlys.dll"/>
 		</Item>
 		<Item Name="Build Specifications" Type="Build"/>
@@ -133,7 +137,12 @@ AddOutputFilter chunkFilter
 		<Property Name="target.webservices.ValidTimestampWindow" Type="Int">15</Property>
 		<Item Name="Cesar" Type="Folder">
 			<Item Name="Rocket simulation" Type="Folder">
+				<Item Name="3Axis_Acel_v2.vi" Type="VI" URL="../3Axis_Acel_v2.vi"/>
+				<Item Name="3Axis_Rate_v2.vi" Type="VI" URL="../3Axis_Rate_v2.vi"/>
 				<Item Name="Angle_Of_Attack_in_DLR_Navigation_Reference_System (SubVI).vi" Type="VI" URL="../Angle_Of_Attack_in_DLR_Navigation_Reference_System (SubVI).vi"/>
+				<Item Name="Col_32B_v2.vi" Type="VI" URL="../Col_32B_v2.vi"/>
+				<Item Name="CRC.vi" Type="VI" URL="../CRC.vi"/>
+				<Item Name="DMARS_Frame_v2_write.vi" Type="VI" URL="../DMARS_Frame_v2_write.vi"/>
 				<Item Name="ECEF_2_LLA(SubVI).vi" Type="VI" URL="../ECEF_2_LLA(SubVI).vi"/>
 				<Item Name="ECEF_2_LLA2(SubVI).vi" Type="VI" URL="../ECEF_2_LLA2(SubVI).vi"/>
 				<Item Name="file.csv" Type="Document" URL="../file.csv"/>
@@ -145,6 +154,7 @@ AddOutputFilter chunkFilter
 				<Item Name="matrix_vector_product (SubVI).vi" Type="VI" URL="../matrix_vector_product (SubVI).vi"/>
 				<Item Name="Norm_vector_3x1 (SubVI).vi" Type="VI" URL="../Norm_vector_3x1 (SubVI).vi"/>
 				<Item Name="q2DCM (SubVI).vi" Type="VI" URL="../q2DCM (SubVI).vi"/>
+				<Item Name="Q_32B_v2.vi" Type="VI" URL="../Q_32B_v2.vi"/>
 				<Item Name="RS_Project 1.aliases" Type="Document" URL="../RS_Project 1.aliases"/>
 				<Item Name="RS_Project 1.lvlps" Type="Document" URL="../RS_Project 1.lvlps"/>
 				<Item Name="RT_Aceleration in DLR Navigation Reference System(SubVI).vi" Type="VI" URL="../RT_Aceleration in DLR Navigation Reference System(SubVI).vi"/>
@@ -166,12 +176,15 @@ AddOutputFilter chunkFilter
 				<Item Name="RT_RK4_translation (SubVI).vi" Type="VI" URL="../RT_RK4_translation (SubVI).vi"/>
 				<Item Name="RT_rotation (SubVI).vi" Type="VI" URL="../RT_rotation (SubVI).vi"/>
 				<Item Name="RT_Rotation_Integration (SubVI).vi" Type="VI" URL="../RT_Rotation_Integration (SubVI).vi"/>
+				<Item Name="RT_simul.vi" Type="VI" URL="../RT_simul.vi"/>
 				<Item Name="RT_skewMatrix (SubVI).vi" Type="VI" URL="../RT_skewMatrix (SubVI).vi"/>
 				<Item Name="RT_Thrust_Force_in_DLR_Body_Reference_System(SubVI).vi" Type="VI" URL="../RT_Thrust_Force_in_DLR_Body_Reference_System(SubVI).vi"/>
 				<Item Name="RT_Thrust_Force_in_DLR_Navigation_Reference_System(SubVI).vi" Type="VI" URL="../RT_Thrust_Force_in_DLR_Navigation_Reference_System(SubVI).vi"/>
 				<Item Name="RT_TVA_Plant (SubVI).vi" Type="VI" URL="../RT_TVA_Plant (SubVI).vi"/>
 				<Item Name="RT_TVA_time (SubVI).vi" Type="VI" URL="../RT_TVA_time (SubVI).vi"/>
 				<Item Name="RT_TVAi_r (SubVI).vi" Type="VI" URL="../RT_TVAi_r (SubVI).vi"/>
+				<Item Name="RT_VS50_Dynamics_DLR.vi" Type="VI" URL="../RT_VS50_Dynamics_DLR.vi"/>
+				<Item Name="RT_VS50_Dynamics_DLR_v3.vi" Type="VI" URL="../RT_VS50_Dynamics_DLR_v3.vi"/>
 				<Item Name="somente_cabeçalho_o_resto_eh_lixo.xlsx" Type="Document" URL="../somente_cabeçalho_o_resto_eh_lixo.xlsx"/>
 				<Item Name="T 1 (SubVI).vi" Type="VI" URL="../T 1 (SubVI).vi"/>
 				<Item Name="T 2 (SubVI).vi" Type="VI" URL="../T 2 (SubVI).vi"/>
@@ -3334,7 +3347,7 @@ AddOutputFilter chunkFilter
 			</Item>
 		</Item>
 		<Item Name="Library 1.lvlib" Type="Library" URL="../Library 1.lvlib"/>
-		<Item Name="RT_VS50_Dynamics_DLR.vi" Type="VI" URL="../RT_VS50_Dynamics_DLR.vi"/>
+		<Item Name="RT_control_ref_test_v1.vi" Type="VI" URL="../RT_control_ref_test_v1.vi"/>
 		<Item Name="RT_VS50_Dynamics_DLR_v2.vi" Type="VI" URL="../RT_VS50_Dynamics_DLR_v2.vi"/>
 		<Item Name="Dependencies" Type="Dependencies">
 			<Item Name="vi.lib" Type="Folder">
