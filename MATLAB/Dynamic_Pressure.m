@@ -1,6 +1,6 @@
-function [Pdin, Patm] = Dynamic_Pressure(h, Vrocket, Vwind)
-% Função que calcula a Força Gravitacional em um determinado momento no 
-% Triedo de navegação do DLR
+function [Pdin, Patm, T] = Dynamic_Pressure(h, Vrocket, Vwind)
+% Função que calcula a Pressão Dinâmica e Pressão Atmosférica em um determinado
+% momento no Triedo de navegação do DLR
 %
 % INPUTS ESCALARES:
 %  h: Altitude [m]
@@ -34,6 +34,7 @@ end
 
 Patm = 1000 * p;                        % Pressure    [Pa]
 rho = Patm/(286.9 * (T+273.1));         % Density     [Kg/m^3]
+T = T + 273.1;                          % Temperature [K]
 
 
 % Dynamic Pressure

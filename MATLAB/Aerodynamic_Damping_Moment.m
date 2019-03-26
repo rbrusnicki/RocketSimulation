@@ -27,6 +27,7 @@ Sref = pi * ( D/2 )^2;
 
 V_norm = norm( V - V_wind );
 
+
 % Momento Aerodinamico de Amortecimento no Triedo do corpo do DLR
 if V_norm == 0
     MAd_b = [0; 0; 0];

@@ -57,8 +57,8 @@ function [TVA_control_time] = TVA_time( T, TVA_p, TVA_p_old, TVA_y, TVA_y_old)
     
 end
 
-function [Act315, Act225] = TVAi_r(TVA_p, TVA_y, roll_angle)
+function [Act315, Act225] = TVAi_r(TVA_p, TVA_y, roll1)
 % requested inertial pitch and yaw nozzle deflection angle
-    Act315 = - TVA_y * sin(roll_angle + pi/4) - TVA_p * cos(roll_angle + pi/4);     
-    Act225 = + TVA_y * cos(roll_angle + pi/4) - TVA_p * sin(roll_angle + pi/4);     
+    Act315 = - TVA_y * sin(roll1 + pi/4) - TVA_p * cos(roll1 + pi/4);     
+    Act225 = + TVA_y * cos(roll1 + pi/4) - TVA_p * sin(roll1 + pi/4);     
 end

@@ -1,16 +1,17 @@
-function [FE_b] = Thrust_Force_in_DLR_Body_Reference_System(Fe, Beta)
+function [FE_b] = Thrust_Force_in_DLR_Body_Reference_System(Fe, Beta, Nozzle_misalignment)
 % Função que calcula a Força de Empuxo no Triedo do Corpo para um instante
 % de tempo
 %
 % INPUTS ESCALARES:
 % Fe: Magnitude da força de empuxo naquele instante                                              [N]
 % Beta: Angulo de comando dos atuadores 315 e 225 no "referencial do Corpo do DLR"              [rad]
+% Nozzle_misalignment: Desalinhamento da tubeira [pitch, yaw]                                   [rad]
 %
 % OUTPUT VETORIAL:
 % FE_B: Força de empuxo representada no referencial do Corpo do DLR
 %
 % Autor: Roberto Brusnicki
-% Data: 21/11/2015
+% Data: 22/03/2019
 
 
 % Beta_pitch: Angulo de comando em pitch do TVA no referencial do Corpo do DLR  [rad]
@@ -18,7 +19,10 @@ function [FE_b] = Thrust_Force_in_DLR_Body_Reference_System(Fe, Beta)
  Beta_pitch = sqrt(2)/2 * Beta(1) - sqrt(2)/2 * Beta(2);
  Beta_yaw = sqrt(2)/2 * Beta(1) + sqrt(2)/2 * Beta(2);
 
-
+ % Adição do Desalinhamento da Tubeira
+ Beta_pitch = Beta_pitch - Nozzle_misalignment(1);      % O sinal de menos aqui é para desalinhamento positivo causar pitch positivo
+ Beta_yaw = Beta_yaw - Nozzle_misalignment(2);          % O sinal de menos aqui é para desalinhamento positivo causar yaw positivo
+ 
 % if motor pressure is less than atmospheric pressure
 if Fe < 0
     % Return no Thrust

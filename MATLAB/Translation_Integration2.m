@@ -1,4 +1,4 @@
-function [position, Velocity] = Translation_Integration2( latd, lon, alt, V, acc, dt)
+function [position, Velocity, XYZ] = Translation_Integration2( latd, lon, alt, V, acc, dt)
 
 w_t = 7.2921151467e-5;                                     %Velocidade angular da Terra       rad/s]
 R_e = 6378137;                                             %Raio equatorial                      [m]
@@ -24,6 +24,8 @@ acc = ( Rot1 * acc' )';
 x = [   p(1),  V_ecef(1) ];
 y = [   p(2),  V_ecef(2) ];
 z = [   p(3),  V_ecef(3) ];
+
+XYZ = [p(1), p(2), p(3)];
   
 % Runge-Kuttas
 fx = @(t, x) [ x(2) + acc(1) * t  , acc(1) ];
