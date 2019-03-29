@@ -7,6 +7,7 @@
 	<Property Name="varPersistentID:{27FFF597-BDC9-442B-B35D-F7C4AC326887}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Stop_RT</Property>
 	<Property Name="varPersistentID:{35B9AC5F-1BC5-41D8-8862-AA23C94932EA}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/q</Property>
 	<Property Name="varPersistentID:{369569CA-7B62-4B6F-A033-841410811A58}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/lon</Property>
+	<Property Name="varPersistentID:{38BBA70B-3085-4B9C-85DF-10C0D00C0F19}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Control Variables</Property>
 	<Property Name="varPersistentID:{463F600A-2659-4011-827A-E113B06B00B5}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/milisec</Property>
 	<Property Name="varPersistentID:{46A9E42E-5DB4-46D8-924B-1492299205A6}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/DMARS</Property>
 	<Property Name="varPersistentID:{4D4B5244-8201-4C51-B626-B31198FC9D54}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Pos</Property>
@@ -3523,7 +3524,9 @@ AddOutputFilter chunkFilter
 			</Item>
 		</Item>
 		<Item Name="Library 1.lvlib" Type="Library" URL="../Library 1.lvlib"/>
+		<Item Name="RT_Act_Plant_v2 (SubVI).vi" Type="VI" URL="../RT_Act_Plant_v2 (SubVI).vi"/>
 		<Item Name="RT_control_ref_test_v1.vi" Type="VI" URL="../RT_control_ref_test_v1.vi"/>
+		<Item Name="RT_TVA_DATA_v2.vi" Type="VI" URL="../RT_TVA_DATA_v2.vi"/>
 		<Item Name="RT_VS50_Dynamics_DLR_v2.vi" Type="VI" URL="../RT_VS50_Dynamics_DLR_v2.vi"/>
 		<Item Name="Dependencies" Type="Dependencies">
 			<Item Name="vi.lib" Type="Folder">
@@ -3565,7 +3568,6 @@ AddOutputFilter chunkFilter
 				<Property Name="NI.PreserveRelativePath" Type="Bool">true</Property>
 			</Item>
 			<Item Name="RSProject1_FPGATarget_FPGAsbFOG_nqNeV5r0bh8.lvbitx" Type="Document" URL="../FPGA Bitfiles/RSProject1_FPGATarget_FPGAsbFOG_nqNeV5r0bh8.lvbitx"/>
-			<Item Name="RT_TVA_DATA.vi" Type="VI" URL="../RT_TVA_DATA.vi"/>
 			<Item Name="RT_TVA_READ.vi" Type="VI" URL="../RT_TVA_READ.vi"/>
 			<Item Name="RT_Write_DMARS_String.vi" Type="VI" URL="../RT_Write_DMARS_String.vi"/>
 		</Item>
