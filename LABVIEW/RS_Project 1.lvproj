@@ -18,6 +18,7 @@
 	<Property Name="varPersistentID:{A0206B99-59C9-4616-8E6C-A0DCB4124970}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Run_SIM</Property>
 	<Property Name="varPersistentID:{BAA6686A-9C25-4186-A0C4-AA497CC8C1A3}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/latd</Property>
 	<Property Name="varPersistentID:{C29940F4-77C1-4980-ACE8-E6DE31862A5B}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/lat_c</Property>
+	<Property Name="varPersistentID:{DBD9C859-266F-448A-95F8-F73A354765B4}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/output array</Property>
 	<Property Name="varPersistentID:{DC9D5970-24DC-4E05-9C95-9DB112A7C952}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Euler_angles</Property>
 	<Property Name="varPersistentID:{E6BC789E-05F9-4C70-AE86-0A4DCBB1D25B}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/Stop_Host</Property>
 	<Property Name="varPersistentID:{F11D9510-B15E-47B2-9D25-30D2B3A0A1C9}" Type="Ref">/NI-sbRIO-9627-001/Library 1.lvlib/TVA</Property>
@@ -172,6 +173,8 @@ AddOutputFilter chunkFilter
 				<Item Name="RS_Project 1.lvlps" Type="Document" URL="../RS_Project 1.lvlps"/>
 				<Item Name="RT_Aceleration in DLR Navigation Reference System(SubVI).vi" Type="VI" URL="../RT_Aceleration in DLR Navigation Reference System(SubVI).vi"/>
 				<Item Name="RT_Act_Plant (SubVI).vi" Type="VI" URL="../RT_Act_Plant (SubVI).vi"/>
+				<Item Name="RT_Act_Plant_v2 (SubVI).vi" Type="VI" URL="../RT_Act_Plant_v2 (SubVI).vi"/>
+				<Item Name="RT_Act_Plant_v3 (SubVI).vi" Type="VI" URL="../RT_Act_Plant_v3 (SubVI).vi"/>
 				<Item Name="RT_Aerodynamic_Damping_Moment (SubVI).vi" Type="VI" URL="../RT_Aerodynamic_Damping_Moment (SubVI).vi"/>
 				<Item Name="RT_Aerodynamic_Force_in_DLR_Navigation_Reference_System (SubVI).vi" Type="VI" URL="../RT_Aerodynamic_Force_in_DLR_Navigation_Reference_System (SubVI).vi"/>
 				<Item Name="RT_Aerodynamic_Moment_due_to_Fins_Misalignment (SubVI).vi" Type="VI" URL="../RT_Aerodynamic_Moment_due_to_Fins_Misalignment (SubVI).vi"/>
@@ -179,6 +182,7 @@ AddOutputFilter chunkFilter
 				<Item Name="RT_Angle_Of_Attack_in_DLR_Navigation_Reference_System (SubVI).vi" Type="VI" URL="../RT_Angle_Of_Attack_in_DLR_Navigation_Reference_System (SubVI).vi"/>
 				<Item Name="RT_Angular Aceleration in DLR Navigation Reference System(SubVI).vi" Type="VI" URL="../RT_Angular Aceleration in DLR Navigation Reference System(SubVI).vi"/>
 				<Item Name="RT_Config_sbRIO.vi" Type="VI" URL="../RT_Config_sbRIO.vi"/>
+				<Item Name="RT_control_ref_test_v1.vi" Type="VI" URL="../RT_control_ref_test_v1.vi"/>
 				<Item Name="RT_Coriolis_Force_in_DLR_Navigation_Reference_System(SubVI).vi" Type="VI" URL="../RT_Coriolis_Force_in_DLR_Navigation_Reference_System(SubVI).vi"/>
 				<Item Name="RT_Coriolis_Moment_in_DLR_Navigation_Reference_System(SubVI).vi" Type="VI" URL="../RT_Coriolis_Moment_in_DLR_Navigation_Reference_System(SubVI).vi"/>
 				<Item Name="RT_DynamicPressure.vi" Type="VI" URL="../RT_DynamicPressure.vi"/>
@@ -195,6 +199,7 @@ AddOutputFilter chunkFilter
 				<Item Name="RT_skewMatrix (SubVI).vi" Type="VI" URL="../RT_skewMatrix (SubVI).vi"/>
 				<Item Name="RT_Thrust_Force_in_DLR_Body_Reference_System(SubVI).vi" Type="VI" URL="../RT_Thrust_Force_in_DLR_Body_Reference_System(SubVI).vi"/>
 				<Item Name="RT_Thrust_Force_in_DLR_Navigation_Reference_System(SubVI).vi" Type="VI" URL="../RT_Thrust_Force_in_DLR_Navigation_Reference_System(SubVI).vi"/>
+				<Item Name="RT_TVA_DATA_v2.vi" Type="VI" URL="../RT_TVA_DATA_v2.vi"/>
 				<Item Name="RT_TVA_time (SubVI).vi" Type="VI" URL="../RT_TVA_time (SubVI).vi"/>
 				<Item Name="RT_TVAi_r (SubVI).vi" Type="VI" URL="../RT_TVAi_r (SubVI).vi"/>
 				<Item Name="RT_VS50_Dynamics_DLR.vi" Type="VI" URL="../RT_VS50_Dynamics_DLR.vi"/>
@@ -3524,9 +3529,7 @@ AddOutputFilter chunkFilter
 			</Item>
 		</Item>
 		<Item Name="Library 1.lvlib" Type="Library" URL="../Library 1.lvlib"/>
-		<Item Name="RT_Act_Plant_v2 (SubVI).vi" Type="VI" URL="../RT_Act_Plant_v2 (SubVI).vi"/>
-		<Item Name="RT_control_ref_test_v1.vi" Type="VI" URL="../RT_control_ref_test_v1.vi"/>
-		<Item Name="RT_TVA_DATA_v2.vi" Type="VI" URL="../RT_TVA_DATA_v2.vi"/>
+		<Item Name="RT_DMARS (SubVI).vi" Type="VI" URL="../RT_DMARS (SubVI).vi"/>
 		<Item Name="RT_VS50_Dynamics_DLR_v2.vi" Type="VI" URL="../RT_VS50_Dynamics_DLR_v2.vi"/>
 		<Item Name="Dependencies" Type="Dependencies">
 			<Item Name="vi.lib" Type="Folder">
