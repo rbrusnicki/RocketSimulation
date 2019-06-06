@@ -26,4 +26,5 @@ I_times_ang_acc = ( MCo' + MFE' + MFA' - Mextra' + MA_f' + MA_d' );  %NRS
 
 ang_acc_b = I\( D_NB*I_times_ang_acc );  % BRS
         
+ang_acc_b = ang_acc_b';
 end

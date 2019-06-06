@@ -17,8 +17,9 @@ function [MA_f] = Aerodynamic_Moment_due_to_Fins_Misalignment(Pdin, D_NB, Cld, d
 % Autor: Roberto Brusnicki
 % Data: 03/12/18
 
-Dref = 1.46;             % Diâmetro de referencia utilizado para levantar os coeficientes       [m]
-Sref = 1.674155;         % Area de referencia utilizado para levantar os coeficientes           [m^2]
+Dref = 1.72;             % Diâmetro de referencia utilizado para levantar os coeficientes       [m]
+Sref = pi*(Dref/2)^2;    % Area de referencia utilizado para levantar os coeficientes           [m^2]
+       
 % Lref = 11.5559;        % Comprimento de referencia utilizado para levantar os coeficientes    [m]
 
 % Magnitude of the moment

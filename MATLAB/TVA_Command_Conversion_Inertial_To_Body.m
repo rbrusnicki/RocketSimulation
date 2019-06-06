@@ -1,4 +1,4 @@
-function [Act315_225] = Act_Command_Conversion_Inertial_To_Body(TVA, TVA_old, roll_angle, roll_rate)
+function [TVA_b, Act315_225] = TVA_Command_Conversion_Inertial_To_Body(TVA, TVA_old, roll_angle, roll_rate)
 % Função que converte os comandos inerciais (DLR) do TVA em pitch e yaw para o
 % triedo do corpo (DLR) do foguete. Inicialmente a função faz uma predição
 % de qual será o angulo de roll do foguete no instante que a tubeira tiver
@@ -24,21 +24,21 @@ function [Act315_225] = Act_Command_Conversion_Inertial_To_Body(TVA, TVA_old, ro
 % Authors: Josef Ettl - DLR, Roberto Brusnicki - IAE
 % Date: 17/12/2018
 
-TVA_p = TVA(2);
-TVA_y = TVA(1);
-TVA_p_old = TVA_old(2);
-TVA_y_old = TVA_old(1);
+TVA_p = TVA(1);
+TVA_y = TVA(2);
+TVA_p_old = TVA_old(1);
+TVA_y_old = TVA_old(2);
 
 % Roll Pediction:
 roll1 = roll_angle + TVA_time(0, TVA_p, TVA_p_old, TVA_y, TVA_y_old) * roll_rate ;
-% roll1 = roll_angle;
 
 % Conversion from inertial to body fixed nozzle deflection angles:
-[Act315, Act225] = TVAi_r(TVA_p, TVA_y, roll1);
+[TVA_p_b, TVA_y_b, Act315, Act225] = TVAi_r(TVA_p, TVA_y, roll1);
 
 % For debbuging pourpose
 % [TVA_p_b, TVA_y_b, Act315, Act225] = TVAi_r(TVA_p, TVA_y, roll_angle);
 
+TVA_b      = [TVA_p_b, TVA_y_b];
 Act315_225 = [ Act315,  Act225];
 
 end
@@ -58,11 +58,14 @@ function [TVA_control_time] = TVA_time( T, TVA_p, TVA_p_old, TVA_y, TVA_y_old)
     
 end
 
-function [Act315, Act225] = TVAi_r(TVA_p, TVA_y, roll1)
+function [TVA_p_b, TVA_y_b, Act315, Act225] = TVAi_r(TVA_p, TVA_y, roll_angle)
 % requested inertial pitch and yaw nozzle deflection angle
-%     Act315 = - TVA_y * sin(roll1 + pi/4) - TVA_p * cos(-roll1 + pi/4);     
-%     Act225 = + TVA_y * cos(roll1 + pi/4) - TVA_p * sin(-roll1 + pi/4); 
-    
-    Act315 =  - TVA_p * sin(-roll1 + pi/4) - TVA_y * sin(roll1 + pi/4);     
-    Act225 =  - TVA_p * cos(-roll1 + pi/4) + TVA_y * cos(roll1 + pi/4);
+
+	TVA_p_b = - TVA_y * sin(roll_angle) - TVA_p * cos(roll_angle);  % pitch in the rotated TVA system
+	TVA_y_b = - TVA_y * cos(roll_angle) + TVA_p * sin(roll_angle);  % yaw in the rotated TVA system  
+
+    Act315 = - TVA_y * sin(roll_angle + pi/4) - TVA_p * cos(roll_angle + pi/4);     
+    Act225 = + TVA_y * cos(roll_angle + pi/4) - TVA_p * sin(roll_angle + pi/4);     
 end
+
+

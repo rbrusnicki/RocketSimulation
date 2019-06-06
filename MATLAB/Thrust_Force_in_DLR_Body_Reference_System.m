@@ -16,8 +16,11 @@ function [FE_b] = Thrust_Force_in_DLR_Body_Reference_System(Fe, Beta, Nozzle_mis
 
 % Beta_pitch: Angulo de comando em pitch do TVA no referencial do Corpo do DLR  [rad]
 % Beta_yaw: Angulo de comando em yaw do TVA no referencial do Corpo do DLR      [rad]
- Beta_pitch = sqrt(2)/2 * Beta(1) - sqrt(2)/2 * Beta(2);
- Beta_yaw = sqrt(2)/2 * Beta(1) + sqrt(2)/2 * Beta(2);
+ Beta_pitch =  sqrt(2)/2 * Beta(1) + sqrt(2)/2 * Beta(2);
+ 
+ Beta_yaw   =  sqrt(2)/2 * Beta(1) - sqrt(2)/2 * Beta(2);
+ 
+
 
  % Adição do Desalinhamento da Tubeira
  Beta_pitch = Beta_pitch - Nozzle_misalignment(1);      % O sinal de menos aqui é para desalinhamento positivo causar pitch positivo

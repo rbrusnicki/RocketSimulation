@@ -20,7 +20,7 @@ function [MAd] = Aerodynamic_Damping_Moment(D_NB, W_b, Coef, Pdin, V, V_wind)
 % Data: 06/12/2015
 
 % Diâmetro do S50 [m]
-D = 1.46;               %    1.72;
+D = 1.72;               %    1.72;
 
 % Area de Referência
 Sref = pi * ( D/2 )^2;  
@@ -35,5 +35,6 @@ else
     MAd_b = - (0.5 * Pdin * Sref * D^2 / V_norm) * Coef * W_b';
 end
 
+% Momento Aerodinamico de Amortecimento no Triedo de Navegação do DLR
 MAd = ( D_NB' * MAd_b )';
        
