@@ -70,10 +70,14 @@ roll_ref_deg  = data_100hz(:,54);        % DLR Roll reference                   
 
 mach_number = data_100hz(1:n,39);
 
-load('vento_1.mat');
+latd_ref =  data_100hz(1:n,43);          % Trajectory geodetic latitude reference   [º]
+lon_ref  = data_100hz(1:n,41);           % Trajectory longitude reference           [º]
+alt_ref  = data_100hz(1:n,38) * 1e3;     % Trajectory altitude reference            [m]
+
+% load('vento_1.mat');
 % V_wind      = [vento_1(1:n,2) vento_1(1:n,3) zeros(n,1)];     % Wind Velocity vector in DLR Navigation Ref. Sys.     [m/s]
-V_wind      = zeros(n,3);                                     % Wind Velocity vector in DLR Navigation Ref. Sys.     [m/s]
-% V_wind    = [zeros(n,1) [zeros(1000,1); 10*ones(n-1000,1)] zeros(n,1)];           % Constant Wind Velocity vector in DLR Navigation Ref. Sys. [m/s]
+% V_wind      = zeros(n,3);                                     % Wind Velocity vector in DLR Navigation Ref. Sys.     [m/s]
+V_wind    = [zeros(n,1) [zeros(1000,1);  10*ones(n-1000,1)]  zeros(n,1)];           % Constant Wind Velocity vector in DLR Navigation Ref. Sys. [m/s]
 % V_wind(4000:n,:) = zeros(n-3999,3);
 
 %% Dados variantes de voo (LOGDATA)
@@ -109,6 +113,8 @@ AoA_yaw     = zeros(n,1);               % Angle of Attack in YZ plane of DLR Nav
 AoA_comp_deg= zeros(n,2);               % Computed AoA in YZ plane of DLR NRS [pitch, yaw]     [degrees]
 Speed_pitch = zeros(n,1);               % First Euler angle of the Speed Vector Attitude (XYZ) [rad]
 Speed_yaw   = zeros(n,1);               % Second Euler angle of the Speed Vector Attitude (XYZ)[rad]
+Speed_pitch_comp = zeros(n,1);          % Computed First Euler angle of the Speed Vector Attitude (XYZ) [rad]
+Speed_yaw_comp   = zeros(n,1);          % Computed Second Euler angle of the Speed Vector Attitude (XYZ)[rad]
 MCo         = zeros(n,3);               % Coriolis Moment in DLR Navigation Reference System   [N.m]
 MFE         = zeros(n,3);               % Propulsive Moment in DLR Navigation Reference Sys.   [N.m]
 MFA         = zeros(n,3);               % Aerodynamic Moment in DLR Navigation Reference Sys.  [N.m]
@@ -157,7 +163,7 @@ for i = 1:n%(n-1)
 %     [AoA_pitch(i), AoA_yaw(i), Speed_pitch(i), Speed_yaw(i)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System(D_NB, V(i,:), V_wind(i,:));
     
     %% Computed Angles of Attack no Triedo de Navegação do DLR
-    [AoA_comp_deg(i,1), AoA_comp_deg(i,2)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System2( V(i,:), [0 0 0], q(i,:));
+    [AoA_comp_deg(i,1), AoA_comp_deg(i,2), Speed_pitch_comp(i), Speed_yaw_comp(i)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System2( V(i,:), [0 0 0], q(i,:));
 %     [AoA_comp_deg(i,1), AoA_comp_deg(i,2)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System(D_NB, V(i,:), [0, 0, 0]);
     
     AoA_comp_deg(i,1) = AoA_comp_deg(i,1) * 180/pi;
@@ -344,7 +350,7 @@ for i = 1:n%(n-1)
     
     
     pitch_desired_deg = pitch_ref_deg(i);
-    Speed_pitch_deg = Speed_pitch(i) * 180/pi;
+    Speed_pitch_deg = Speed_pitch_comp(i) * 180/pi;
     
     if( abs(AoA_comp_deg(i,1)) > corr_angle_deg )
        if( AoA_comp_deg(i,1) > 0 )
@@ -356,7 +362,7 @@ for i = 1:n%(n-1)
 
 
     yaw_desired_deg = yaw_ref_deg(i);
-    Speed_yaw_deg = Speed_yaw(i) * 180/pi;
+    Speed_yaw_deg = Speed_yaw_comp(i) * 180/pi;
     
     if( abs(AoA_comp_deg(i,2)) > corr_angle_deg )
        if( AoA_comp_deg(i,2) > 0 )
@@ -457,8 +463,9 @@ W_b_deg = W_b * 180/pi;
 
 %% PLOTS
 
-%% Footprint versus Altitude
-figure();
+%% Footprint versus Altitude - SCATTER
+% figure();
+subplot(1,2,1);
 scatter(lon(1:n), latd(1:n), 3, alt(1:n), 'filled')
 title('Footprint X Altitude');
 xlabel('Lon [º]');
@@ -467,15 +474,41 @@ colorbar;
 axis('equal');
 grid on;
 
-%% Rough trajectory plane
-figure();
+% Rough trajectory plane - SCATTER
+subplot(1,2,2);
 distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2) * pi/180;
-% plot(distance,alt);
 scatter(distance, alt/1e3, 3, 0:n, 'filled');
 title('Trajectory plane over time');
 xlabel('Distance from launch-pad [km]');
 ylabel('Altitude [km]');
 colorbar;
+axis('equal');
+grid on;
+
+%% Footprint versus Altitude - PLOTS
+figure();
+subplot(1,2,1);
+plot(lon_ref(1:n), latd_ref(1:n), 'b', 'LineWidth', 1)
+hold on;
+plot(lon(1:n), latd(1:n), 'r', 'LineWidth', 1)
+title('Footprint X Altitude');
+xlabel('Lon [º]');
+ylabel('Latd [º]');
+axis('equal');
+grid on;
+legend('reference','executed');
+
+% Rough trajectory plane
+subplot(1,2,2);
+distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2) * pi/180;
+distance_ref = 6378.137*sqrt((lon_ref-lon_ref(1)).^2+(latd_ref-latd_ref(1)).^2) * pi/180;
+plot(distance_ref, alt_ref/1e3, 'b', 'LineWidth', 1);
+hold on;
+plot(distance, alt/1e3,'r', 'LineWidth', 1);
+title('Trajectory plane over time');
+xlabel('Distance from launch-pad [km]');
+ylabel('Altitude [km]');
+legend('reference','executed');
 axis('equal');
 grid on;
 
@@ -499,14 +532,14 @@ plot(yaw_ref_deg,'Color',[0.0, 0.33, 0.0])
 % legend('pitch','yaw','roll','Speed-pitch','Speed-yaw', 'Pitch-ref', 'Yaw-ref', 'Location','northwest')
 legend('pitch','yaw','roll', 'Pitch-ref', 'Yaw-ref', 'Location','northwest')
 
-figure()
-plot( AoA_deg(:,1), 'b')
-hold
-plot( AoA_deg(:,2), 'r')
-plot( AoA_comp_deg(:,1),'Color',[0.0, 0.0, 0.66])
-plot( AoA_comp_deg(:,2),'Color',[0.66, 0.0, 0.0])
-legend('AoA-pitch','AoA-yaw','AoA-pitch-comp','AoA-yaw-comp')
-title('Angles of Attack');
+% figure()
+% plot( AoA_deg(:,1), 'b')
+% hold
+% plot( AoA_deg(:,2), 'r')
+% plot( AoA_comp_deg(:,1),'Color',[0.0, 0.0, 0.66])
+% plot( AoA_comp_deg(:,2),'Color',[0.66, 0.0, 0.0])
+% legend('AoA-pitch','AoA-yaw','AoA-pitch-comp','AoA-yaw-comp')
+% title('Angles of Attack');
 
 % figure()
 % plot(W_b_deg,'DisplayName','W_b_deg')
@@ -592,8 +625,8 @@ clear('Nz_d'); clear('Nzl_S'); clear('R_e'); clear('R_l');   clear('R_lh');  cle
 clear('dt');   clear('f');     clear('fx');  clear('fy');    clear('fz');    clear('Fe_traj');          clear('Mextra_b'); 
 clear('i');    clear('le');    clear('T');   clear('pitch'); clear('yaw');   clear('roll');             clear('position');
 clear('q0');   clear('q1');    clear('q2');  clear('q3');    clear('w_b');   clear('alt_traj');         clear('M_alpha');       
-clear('k1');   clear('k2');    clear('k3');  clear('k4');    clear('dl');    clear('M_beta');           clear('data_100hz');
-clear('Dref'); clear('Sref');  clear('Mach');clear('n');     clear('P');     clear('D');                clear('M_beta_deg');
+clear('k1');   clear('k2');    clear('k3');  clear('k4');    clear('dl');    clear('M_beta');          % clear('data_100hz');
+clear('Dref'); clear('Sref');  clear('Mach');clear('P');     clear('D');     clear('M_beta_deg');       % clear('n');     
 clear('ii');   clear('N');     clear('');    clear('');      clear('');      clear('liftoffcounter');   clear('corr_angle_deg');
 
 clear('DMARS_0');     clear('Sound_Velocity');
