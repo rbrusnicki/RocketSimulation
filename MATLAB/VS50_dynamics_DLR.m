@@ -76,8 +76,8 @@ alt_ref  = data_100hz(1:n,38) * 1e3;     % Trajectory altitude reference        
 
 % load('vento_1.mat');
 % V_wind      = [vento_1(1:n,2) vento_1(1:n,3) zeros(n,1)];     % Wind Velocity vector in DLR Navigation Ref. Sys.     [m/s]
-% V_wind      = zeros(n,3);                                     % Wind Velocity vector in DLR Navigation Ref. Sys.     [m/s]
-V_wind    = [zeros(n,1) [zeros(1000,1);  10*ones(n-1000,1)]  zeros(n,1)];           % Constant Wind Velocity vector in DLR Navigation Ref. Sys. [m/s]
+V_wind      = zeros(n,3);                                     % Wind Velocity vector in DLR Navigation Ref. Sys.     [m/s]
+% V_wind    = [zeros(n,1) [zeros(1000,1);  10*ones(n-1000,1)]  zeros(n,1)];           % Constant Wind Velocity vector in DLR Navigation Ref. Sys. [m/s]
 % V_wind(4000:n,:) = zeros(n-3999,3);
 
 %% Dados variantes de voo (LOGDATA)
@@ -228,7 +228,8 @@ for i = 1:n%(n-1)
 
     %% Momento de Coriolis no triedo de Navegação do DLR 
     MCo(i,:) = Coriolis_Moment_in_DLR_Navigation_Reference_System(Ixx_p(i), Iyy_p(i), Izz_p(i), D_NB, M_p(i), W_b(i,:), CoG(i), le);
-
+    MCo_b(i,:) = (D_NB * MCo(i,:)')';
+    
     %% Momento Propulsivo no triedo de Navegação do DLR 
     MFE(i,:) = Thrust_Moment_in_DLR_Navigation_Reference_System(FE(i,:), D_NB, CoG(i), le, Nozzle_eccentricity);
     
@@ -275,7 +276,7 @@ for i = 1:n%(n-1)
     %% Angular Aceleration in DLR Body Reference System
     I = diag([Ixx(i), Iyy(i), Izz(i)]); %BRS
   
-    ang_acc_b(i,:) = Angular_Aceleration_in_DLR_Body_Reference_System(I, W_b(i,:), D_NB, MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) ); %BRS
+    ang_acc_b(i,:) = Angular_Aceleration_in_DLR_Body_Reference_System(I, W_b(i,:), D_NB, 0*MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) ); %BRS
     
      % OVERWRITING TO TEST >>>>> FIXED ROLL RATE 
 %     ang_acc_b(i,3) = 0;
@@ -349,7 +350,7 @@ for i = 1:n%(n-1)
     end    
     
     
-    pitch_desired_deg = pitch_ref_deg(i);
+    pitch_desired_deg = pitch_ref_deg(i+1);
     Speed_pitch_deg = Speed_pitch_comp(i) * 180/pi;
     
     if( abs(AoA_comp_deg(i,1)) > corr_angle_deg )
@@ -361,7 +362,7 @@ for i = 1:n%(n-1)
     end
 
 
-    yaw_desired_deg = yaw_ref_deg(i);
+    yaw_desired_deg = yaw_ref_deg(i+1);
     Speed_yaw_deg = Speed_yaw_comp(i) * 180/pi;
     
     if( abs(AoA_comp_deg(i,2)) > corr_angle_deg )
@@ -464,26 +465,25 @@ W_b_deg = W_b * 180/pi;
 %% PLOTS
 
 %% Footprint versus Altitude - SCATTER
-% figure();
-subplot(1,2,1);
-scatter(lon(1:n), latd(1:n), 3, alt(1:n), 'filled')
-title('Footprint X Altitude');
-xlabel('Lon [º]');
-ylabel('Latd [º]');
-colorbar;
-axis('equal');
-grid on;
-
-% Rough trajectory plane - SCATTER
-subplot(1,2,2);
-distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2) * pi/180;
-scatter(distance, alt/1e3, 3, 0:n, 'filled');
-title('Trajectory plane over time');
-xlabel('Distance from launch-pad [km]');
-ylabel('Altitude [km]');
-colorbar;
-axis('equal');
-grid on;
+% subplot(1,2,1);
+% scatter(lon(1:n), latd(1:n), 3, alt(1:n), 'filled')
+% title('Footprint X Altitude');
+% xlabel('Lon [º]');
+% ylabel('Latd [º]');
+% colorbar;
+% axis('equal');
+% grid on;
+% 
+% % Rough trajectory plane - SCATTER
+% subplot(1,2,2);
+% distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2) * pi/180;
+% scatter(distance, alt/1e3, 3, 0:n, 'filled');
+% title('Trajectory plane over time');
+% xlabel('Distance from launch-pad [km]');
+% ylabel('Altitude [km]');
+% colorbar;
+% axis('equal');
+% grid on;
 
 %% Footprint versus Altitude - PLOTS
 figure();
@@ -616,6 +616,16 @@ legend('pitch','yaw','roll', 'Pitch-ref', 'Yaw-ref', 'Location','northwest')
 % figure
 % plot(TVA_cmd(1:8000,:),'DisplayName','TVA_cmd')
 % legend()
+
+figure()
+plot( MA_f_b(:,3) + MA_d_b(:,3))
+hold on
+plot(MCo_b(:,3) )
+plot( MA_f_b(:,3) + MA_d_b(:,3) + MCo_b(:,3) )
+legend('Driving Moment + Damping Moment', 'Coriolis Moment', 'Driving Moment + Damping Moment + Coriolis Moment')
+xlabel('Time [0.01s]')
+ylabel('Moment [N.m]')
+title('Roll Moments')
 
 %% Clean up 
 clear('Coef'); clear('x');     clear('y');   clear('z');     clear('ans');   clear('I_times_ang_acc');
