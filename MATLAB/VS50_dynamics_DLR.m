@@ -5,97 +5,90 @@ close all;
 set(0,'DefaultAxesXGrid','on')
 set(0,'DefaultAxesYGrid','on')
 set(0,'DefaultLineLineWidth', 2);
-% set(0,'defaultFigurePosition', [180 558 1260 420])
 set(0,'defaultFigurePosition', [10 200 1600 800])
 colordef white
 
 %% Dados do veículo
+
+load('2018.12.04_VS50_alcantara.mat');
+% load('vento_1.mat');
+% load('vento_2.mat');
+% load('vento_4.mat');
+
+% Constant values
+
+n = length(data_100hz);          % number of iterations
 le    = -10.9332;			 	 % Position of the 'Nozzle Throat' in Longitudinal Axis     [m]
-dl = 0.05 * pi/180;              % Fins Misalignment                                        [rad]
 Nz_d  = 0.820;                   % Nozzle exit diameter                                     [m]
 Nzl_S = pi*(Nz_d)^2;             % Nozzle exit area                                         [m^2]
 dt = 0.01;                       % Incremento de tempo utilizado                            [s]
-T  = 82;                         % Tempo total de simulação                                 [s]
-Dref = 1.72;                     % Diametro de referência do veículo                        [m]
-Sref = pi * (Dref/2)^2;          % Area de referência do veículo                            [m]
+Dref = 1.72;                     % Vehicle reference diameter                               [m]
+Sref = pi * (Dref/2)^2;          % Vehicle reference area                                   [m^2]
 
-% gera_data();
-load('2018.12.04_result6DOF_VS50_S44ativo_alcantara_WITH_DLR_att_100Hz_plus_Thrust.mat');
-% load('2018.12.04_result6DOF_VS50_Greenland_east_massaDLR_alfa1_with_DLR_att_100Hz.mat');
-% data_100hz = data2;
-% clear('data2');
 
-n = length(data_100hz);              % número de iterações
+% Disturbances
+
+Nozzle_misalignment = pi/180 * [ 0.0  0 ];   % Desalinhamento da tubeira [X-pitch, Y-yaw]        [rad]  
+Nozzle_eccentricity = 1e-3 * [ 0  0 ];        % Ecentricidade da tubeira [X, Y]                   [m]  
+dl = 0.05  * pi/180;                          % Fins Misalignment                                 [rad]
+
+% Control data
 
 pitch_error_old = 0;
 pitch_error_int = 0;
 yaw_error_old   = 0;
 yaw_error_int   = 0;
 
-Nozzle_misalignment = pi/180 * [ 0.0  0 ];   % Desalinhamento da tubeira [X-pitch, Y-yaw]        [rad]  
-Nozzle_eccentricity = 1e-3 * [ 0  0 ];       % Ecentricidade da tubeira [X, Y]                   [m]  
+
 
 %% Leitura dos dados invariantes de voo
 
-Fe_traj = data_100hz(:,12);              % Thrust Magnitude in nominal trajectory   [N]  
-alt_traj = 1e3 * data_100hz(:,38);       % Altitude of the nominal trajectory       [m]
+Fe_traj = data_100hz(:,12);              % Thrust Magnitude in nominal trajectory           [N]  
+alt_traj= 1e3 * data_100hz(:,38);        % Altitude of the nominal trajectory               [m]   
+Fe      = data_100hz(:,55);              % Thrust Magnitude of S50 in vacuum                [N]
+M       = data_100hz(:,25);              % Mass                         			        [Kg]
+Cnalfa  = data_100hz(:,10);              % Aerodynamic Coeficient       			        [1/rad] 
+Cnbeta  = data_100hz(:,11);              % Aerodynamic Coeficient       			        [1/rad] 
+Cd      = data_100hz(:, 5);              % Cd - coeficiente de arrasto 				        [-]
+Cld     = data_100hz(:, 7);              % Cld - coeficiente de 'desalinhamento'           	[-]
+Clp     = data_100hz(:, 6);              % Coef. de Amortecimento Aerod. em x_b             [1/rad]
+Cmq     = data_100hz(:, 8);              % Coef. de Amortecimento Aerod. em y_b             [1/rad]
+Cnr     = data_100hz(:, 9);              % Coef. de Amortecimento Aerod. em z_b             [1/rad]
+M_p     = data_100hz(:,34);              % d(Mass)/dt                                       [Kg/s]
+CoG	    = data_100hz(:,28);              % Center of gravity in longitudinal axis	        [m]
+CoP	    = data_100hz(:,31);              % Center of Pressure in longitudinal axis	        [m]
+Ixx     = data_100hz(:,15);              % Moment of inertia along x axis                   [Kg.m^2]
+Iyy     = data_100hz(:,14);              % Moment of inertia along y axis                   [Kg.m^2]
+Izz     = data_100hz(:,13);              % Moment of inertia along z axis                   [Kg.m^2]
+Ixx_p   = data_100hz(:,21);              % d(Ixx)/dt                                        [Kg.m^2/s]
+Iyy_p   = data_100hz(:,20);              % d(Iyy)/dt                                        [Kg.m^2/s]
+Izz_p   = data_100hz(:,19);              % d(Izz)/dt                                        [Kg.m^2/s]
+latd_ref_deg= data_100hz(:,43);          % Trajectory geodetic latitude reference           [º]
+lon_ref_deg = data_100hz(:,41);          % Trajectory longitude reference                   [º]
+alt_ref = data_100hz(:,38) * 1e3;        % Trajectory altitude reference                    [m]
+mach_number   = data_100hz(:,39);        % Velocity in Mach number for nominal trajectory   [-] 
+pitch_ref_deg = data_100hz(:,52);        % DLR Pitch reference                              [º]
+yaw_ref_deg   = data_100hz(:,53);        % DLR Yaw reference                                [º]
+roll_ref_deg  = data_100hz(:,54);        % DLR Roll reference                               [º]
 
-Fe      = data_100hz(:,55);              % Thrust Magnitude of S50 in vacuum        [N]
-M       = data_100hz(:,25);              % Mass                         			[Kg]
-Cnalfa  = data_100hz(:,10);              % Aerodynamic Coeficient       			[1/rad] 
-Cnbeta  = data_100hz(:,11);              % Aerodynamic Coeficient       			[1/rad] 
-Cd      = data_100hz(1:n, 5);            % Cd - coeficiente de arrasto 				[-]
-Cld     = data_100hz(1:n, 7);            % Cld - coeficiente de 'desalinhamento'   	[-]
-Clp     = data_100hz(1:n, 6);            % Coef. de Amortecimento Aerod. em x_b     [1/rad]
-Cmq     = data_100hz(1:n, 8);            % Coef. de Amortecimento Aerod. em y_b     [1/rad]
-Cnr     = data_100hz(1:n, 9);            % Coef. de Amortecimento Aerod. em z_b     [1/rad]
-M_p     = data_100hz(:,34);              % d(Mass)/dt                               [Kg/s]
-CoG	    = data_100hz(:,28);              % Center of gravity in longitudinal axis	[m]
-CoP	    = data_100hz(:,31);              % Center of Pressure in longitudinal axis	[m]
-Ixx     = data_100hz(:,15);              % Moment of inertia along x axis           [Kg.m^2]
-Iyy     = data_100hz(:,14);              % Moment of inertia along y axis           [Kg.m^2]
-Izz     = data_100hz(:,13);              % Moment of inertia along z axis           [Kg.m^2]
-Ixx_p   = data_100hz(:,21);              % d(Ixx)/dt                                [Kg.m^2/s]
-Iyy_p   = data_100hz(:,20);              % d(Iyy)/dt                                [Kg.m^2/s]
-Izz_p   = data_100hz(:,19);              % d(Izz)/dt                                [Kg.m^2/s]
-
-% pitch_ref_deg = zeros(3,8200); 
-% yaw_ref_deg   = zeros(3,8200);
-% pitch_ref_deg = zeros(3,8200);           % DLR Pitch reference                      [º]
-% yaw_ref_deg   = data_100hz(:,53);        % DLR Yaw reference                        [º]
-
-pitch_ref_deg = data_100hz(:,52);        % DLR Pitch reference                      [º]
-yaw_ref_deg   = data_100hz(:,53);        % DLR Yaw reference                        [º]
-roll_ref_deg  = data_100hz(:,54);        % DLR Roll reference                       [º]
-
-mach_number = data_100hz(1:n,39);
-
-latd_ref =  data_100hz(1:n,43);          % Trajectory geodetic latitude reference   [º]
-lon_ref  = data_100hz(1:n,41);           % Trajectory longitude reference           [º]
-alt_ref  = data_100hz(1:n,38) * 1e3;     % Trajectory altitude reference            [m]
-
-% load('vento_1.mat');
-% V_wind      = [vento_1(1:n,2) vento_1(1:n,3) zeros(n,1)];     % Wind Velocity vector in DLR Navigation Ref. Sys.     [m/s]
-V_wind      = zeros(n,3);                                     % Wind Velocity vector in DLR Navigation Ref. Sys.     [m/s]
-% V_wind    = [zeros(n,1) [zeros(1000,1);  10*ones(n-1000,1)]  zeros(n,1)];           % Constant Wind Velocity vector in DLR Navigation Ref. Sys. [m/s]
-% V_wind(4000:n,:) = zeros(n-3999,3);
+latd_ref = latd_ref_deg * pi/180;        % Trajectory geodetic latitude reference           [rad]
+lon_ref  =  lon_ref_deg * pi/180;        % Trajectory longitude reference                   [rad]
 
 %% Dados variantes de voo (LOGDATA)
 
 TVA_cmd     = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR NRS. [rad]    
-                                        %(-)values produce (+)pitch and (+)yaw (left-hand rule)     
-                                        
 Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315º and  225º [rad]
 Act_b       = zeros(n,2);               % Nozzle angle for actuators at 315º and at 225º       [rad]
 latd        = zeros(n,1);               % Geodetic Latitude of the Vehicle during flight       [rad]
 alt         = zeros(n,1);               % Geodetic Altitude of the Vehicle during flight       [rad]
 lon         = zeros(n,1);               % Geodetic Longitude of the Vehicle during flight      [rad]
-q           = [ones(n,1) zeros(n,3)];   % Quaternion of atitude                                [-]
+q           = zeros(n,4);               % Quaternion of atitude                                [-]
 angles      = zeros(n,3);               % Euler angles in DLR Standard: 1-2-3                  [rad]
 angles_deg  = zeros(n,3);               % Euler angles in DLR Standard: 1-2-3                  [º]
 acc         = zeros(n,3);               % Aceleration vector in DLR Navigation Ref. Sys.       [m/s^2]
-ang_acc     = zeros(n,3);               % Angular Aceleration vector in DLR Nav. Ref. Sys.     [m/s^2]
-ang_acc_b   = zeros(n,3);               % Angular Aceleration vector in DLR Body Ref. Sys.     [m/s^2]
+acc_b       = zeros(n,3);               % Aceleration vector in DLR Navigation Ref. Sys.       [m/s^2]
+ang_acc     = zeros(n,3);               % Angular Aceleration vector in DLR Nav. Ref. Sys.     [rad/s^2]
+ang_acc_b   = zeros(n,3);               % Angular Aceleration vector in DLR Body Ref. Sys.     [rad/s^2]
 V           = zeros(n,3);               % Velocity vector in DLR Navigation Ref. Sys.          [m/s]
 Pdin        = zeros(n,1);               % Dynamic Pressure                                     [Pa]
 Patm        = zeros(n,1);               % Atmospheric Pressure                                 [Pa]
@@ -106,78 +99,81 @@ FG_b        = zeros(n,3);               % Gravitational Force in DLR Body Ref. S
 FA          = zeros(n,3);               % Aerodynamic Force in DLR Navigation Reference System [m]
 FA_b        = zeros(n,3);               % Aerodynamic Force in DLR Body Reference System       [m]
 FCo         = zeros(n,3);               % Coriolis Force in DLR Navigation Reference System    [m]
+FCo_b       = zeros(n,3);               % Coriolis Force in DLR Body Reference System          [m]
 W           = zeros(n,3);               % Angular Velocity in DLR Navigation Reference System  [rad/s]
 W_b         = zeros(n,3);               % Angular Velocity in DLR Body Reference System        [rad/s]
-AoA_pitch   = zeros(n,1);               % Angle of Attack in XZ plane of DLR Nav. Ref. Sys.    [rad]
-AoA_yaw     = zeros(n,1);               % Angle of Attack in YZ plane of DLR Nav. Ref. Sys.    [rad]
-AoA_comp_deg= zeros(n,2);               % Computed AoA in YZ plane of DLR NRS [pitch, yaw]     [degrees]
-Speed_pitch = zeros(n,1);               % First Euler angle of the Speed Vector Attitude (XYZ) [rad]
-Speed_yaw   = zeros(n,1);               % Second Euler angle of the Speed Vector Attitude (XYZ)[rad]
-Speed_pitch_comp = zeros(n,1);          % Computed First Euler angle of the Speed Vector Attitude (XYZ) [rad]
-Speed_yaw_comp   = zeros(n,1);          % Computed Second Euler angle of the Speed Vector Attitude (XYZ)[rad]
+AoA         = zeros(n,2);               % Angle of Attack [XZ plane, YZ plane] of DLR_NRS      [rad]
+AoA_deg     = zeros(n,2);               % Angle of Attack [XZ plane, YZ plane] of DLR_NRS      [º]
+AoA_comp    = zeros(n,2);               % Computed AoA [XZ plane, YZ plane] of DLR_NRS         [rad]
+AoA_comp_deg= zeros(n,2);               % Computed AoA [XZ plane, YZ plane] of DLR_NRS         [º]
+Speed_Att   = zeros(n,2);               % Euler angles of the Speed Vector Attitude (XYZ)      [rad]
+Speed_Att_comp = zeros(n,2);            % Computed Speed_Att considering no wind  [pitch, yaw] [rad]
 MCo         = zeros(n,3);               % Coriolis Moment in DLR Navigation Reference System   [N.m]
+MCo_b       = zeros(n,3);               % Coriolis Moment in DLR Body Reference System         [N.m]
 MFE         = zeros(n,3);               % Propulsive Moment in DLR Navigation Reference Sys.   [N.m]
+MFE_b       = zeros(n,3);               % Propulsive Moment in DLR Body Reference System       [N.m]
 MFA         = zeros(n,3);               % Aerodynamic Moment in DLR Navigation Reference Sys.  [N.m]
 MFA_b       = zeros(n,3);               % Aerodynamic Moment in DLR Body Reference Sys.        [N.m]
 MA_f        = zeros(n,3);               % Moment due to Fins Misalignment in DLR Nav. Ref. Sys.[N.m]
 MA_f_b      = zeros(n,3);               % Moment due to Fins Misalignment in DLR Body Ref. Sys.[N.m]
 MA_d        = zeros(n,3);               % Aerodynamic Damping Moment in DLR Nav. Ref. Sys.     [N.m]
 MA_d_b      = zeros(n,3);               % Aerodynamic Damping Moment in DLR Body Ref. Sys.     [N.m]
-Mextra      = zeros(n,3);               %                                                      [N.m]
 M_alpha     = zeros(n,1);
 M_beta      = zeros(n,1);
 PID_deg     = zeros(n,3);               % PID gains computed as a function of M_beta in degrees
 Temperature = zeros(n,1);               % Temperature [K]
 pitch_error = zeros(n,1);
 yaw_error   = zeros(n,1);
+latd_error  = zeros(n,1);
+lon_error   = zeros(n,1);
 Oil_cons    = zeros(n,1);               %               [L]
 DMARS_data  = zeros(n,16);              % DMARS data sent in the protocol (output of the DMARS_plant)
                                         % [W_b(i,:), ang_acc_b(i,:), q(i,:), V(i,:), latd(i), lon(i), alt(i)];
+                               
 
 Velocity_in_Mach = zeros(n,1);
 
+
+% Initial Position --------------------------------------------------------
+
 XYZ   = zeros(n,3);
 
-alt(1,1) = 50.0;                          % Initial Altitude                 [m]
-latd(1,1) = -2.315995 * pi/180;           % Initial Geodetic Latitud         [rad]
-lon(1,1) = -44.367775 * pi/180;           % Initial Longitude                [rad]
+alt(1,1) = 50.0;                   % Initial Altitude                 [m]
+latd(1,1) = -2.315995 * pi/180;    % Initial Geodetic Latitud         [rad]
+lon(1,1) = -44.367775 * pi/180;    % Initial Longitude                [rad]
 
-             
+% Initial Atitude ---------------------------------------------------------
+
 angles_deg(1,3)  = 0;
 angles(1,3)      = angles_deg(1,3) * pi/180;  
-
 q(1,:) = [cos(angles(1,3)/2) 0 0 sin(angles(1,3)/2)];  
+
+% Wind conditions ---------------------------------------------------------
+
+V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
+% V_wind(1:n,1:2) = vento_1(1:n,2:3); % Wind from files
+% V_wind    = [zeros(n,1) [zeros(1000,1);  10*ones(n-1000,1)]  zeros(n,1)]; 
 
 
 %%
-% N = 8200;
-for i = 1:n%(n-1)
+for i = 1:(n-1)
     %% Pressão Dinâmica e Pressão Atmosférica local
     [Pdin(i), Patm(i), Temperature(i)] = Dynamic_Pressure( alt(i), V(i,:), V_wind(i,:) );
     
     %% Direct Cossine Matrix
-    D_NB = DCM_Navigation_to_Body( q(i,:) );
+    D_NB = DCM_NRS_to_BRS( q(i,:) );
     
     %% Real Angles of Attack no Triedo de Navegação do DLR
-    [AoA_pitch(i), AoA_yaw(i), Speed_pitch(i), Speed_yaw(i)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System2( V(i,:), V_wind(i,:), q(i,:));
-%     [AoA_pitch(i), AoA_yaw(i), Speed_pitch(i), Speed_yaw(i)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System(D_NB, V(i,:), V_wind(i,:));
-    
-    %% Computed Angles of Attack no Triedo de Navegação do DLR
-    [AoA_comp_deg(i,1), AoA_comp_deg(i,2), Speed_pitch_comp(i), Speed_yaw_comp(i)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System2( V(i,:), [0 0 0], q(i,:));
-%     [AoA_comp_deg(i,1), AoA_comp_deg(i,2)] =  Angle_Of_Attack_in_DLR_Navigation_Reference_System(D_NB, V(i,:), [0, 0, 0]);
-    
-    AoA_comp_deg(i,1) = AoA_comp_deg(i,1) * 180/pi;
-    AoA_comp_deg(i,2) = AoA_comp_deg(i,2) * 180/pi;
+    [AoA(i,:), Speed_Att(i,:)] =  Angle_Of_Attack_in_DLR_NRS( V(i,:), V_wind(i,:), q(i,:));
+    AoA_deg(i,:) = AoA(i,:) * 180/pi;
     
     
-    % Na versao do labview, quando esta recebendo do flightcomputer a ordem eh [yaw_cmd, pitch_cmd]
-%       TVA_cmd(i,:) = [0.1 0.1] * pi/180;    %<<<<  TO TEST FIXED COMAND #%#$%^$@^$$%^$@^@#$%#$^@    
     
-    %% TVA command Conversion from Inertial To DLR Body Reference System
+    %% Command Conversion from TVA Comand in DLR NRS To Actuator Command
     if i == 1
-        Act_cmd_b(i,:) = Act_Command_Conversion_Inertial_To_Body(TVA_cmd(i,:),         [0, 0], angles(i,3),        0);
+        Act_cmd_b(i,:) = Command_Conversion_TVA_To_ACT(TVA_cmd(i,:),         [0, 0], angles(i,3),        0);
     else
-        Act_cmd_b(i,:) = Act_Command_Conversion_Inertial_To_Body(TVA_cmd(i,:), TVA_cmd(i-1,:), angles(i,3), W_b(i,3));
+        Act_cmd_b(i,:) = Command_Conversion_TVA_To_ACT(TVA_cmd(i,:), TVA_cmd(i-1,:), angles(i,3), W_b(i,3));
     end
     
     %% Act's command input to Act's plant output
@@ -201,45 +197,7 @@ for i = 1:n%(n-1)
         Oil_cons(i) = Oil_Consumption(Act_b(i,:), Act_b(i-1,:), Oil_cons(i-1));
     end
     
-%% FORCES
-
-    %% Força de Empuxo no Triedo do Corpo do DLR 
-    FE_b(i,:) = Thrust_Force_in_DLR_Body_Reference_System(Fe(i)-Patm(i)*Nzl_S , Act_b(i,:), Nozzle_misalignment);
-
-    %% Força de Empuxo no Triedo de Navegação do DLR 
-    FE(i,:) = Thrust_Force_in_DLR_Navigation_Reference_System(FE_b(i,:), D_NB);
-
-    %% Força Gravitacional instantânea no Triedo de Navegação do DLR
-    FG(i,:) = Gravitational_Force_in_DLR_Navigation_Reference_System(latd(i), alt(i), M(i));        
-
-    %% Força Gravitacional instantânea no Triedo do Corpo do DLR 
-    FG_b(i,:) = Gravitational_Force_in_DLR_Body_Reference_System(D_NB, FG(i,:));
-
-    %% Força Aerodinâmica no triedo de Navegação do DLR 
-    FA(i,:) = Aerodynamic_Force_in_DLR_Navigation_Reference_System(q(i,:), Cnalfa(i), Cnbeta(i), Cd(i), Pdin(i), AoA_pitch(i), AoA_yaw(i), Sref);
-    
-    %% Força Aerodinâmica no triedo do Corpo do DLR 
-    FA_b(i,:) = (D_NB * FA(i,:)')';
-    
-    %% Força de Coriolis no triedo de Navegação do DLR
-    FCo(i,:) = Coriolis_Force_in_DLR_Navigation_Reference_System(D_NB, M_p(i), W_b(i,:), CoG(i), le);
-    
-%% MOMENTS
-
-    %% Momento de Coriolis no triedo de Navegação do DLR 
-    MCo(i,:) = Coriolis_Moment_in_DLR_Navigation_Reference_System(Ixx_p(i), Iyy_p(i), Izz_p(i), D_NB, M_p(i), W_b(i,:), CoG(i), le);
-    MCo_b(i,:) = (D_NB * MCo(i,:)')';
-    
-    %% Momento Propulsivo no triedo de Navegação do DLR 
-    MFE(i,:) = Thrust_Moment_in_DLR_Navigation_Reference_System(FE(i,:), D_NB, CoG(i), le, Nozzle_eccentricity);
-    
-    %% Momento Aerodinâmico no triedo de Navegação do DLR 
-    MFA(i,:) = Aerodynamic_Moment_in_DLR_Navigation_Reference_System(FA(i,:), D_NB, CoG(i), CoP(i));
-    
-    %% Momento Aerodinâmico no triedo do Corpo do DLR 
-    MFA_b(i,:) = (D_NB * MFA(i,:)')';
-    
-    %% Compute the coeficients
+     %% Finds the coeficients 
     Sound_Velocity = 343 * sqrt(Temperature(i) / 293.1 );
     Velocity_in_Mach(i) = norm(V(i,:)-V_wind(i,:)) / Sound_Velocity;
     
@@ -253,36 +211,107 @@ for i = 1:n%(n-1)
     Cmq(i) = data_100hz(ii, 8);
     Cnr(i) = data_100hz(ii, 9);
     
-    %% Momento Aerodinâmico devido ao Desalinhamento de Empenas in DLR Navigation Reference System
-    MA_f(i,:) = Aerodynamic_Moment_due_to_Fins_Misalignment(Pdin(i), D_NB, Cld(i), dl);
-    MA_f_b(i,:) = (D_NB * MA_f(i,:)')';
-    
-    %% Momento Aerodinâmico de Amortecimento
     Coef = diag([ Cmq(i,:), Cnr(i,:), Clp(i,:)]);
     
+%% FORCES
+
+    %% Thrust Force 
+    
+    % In DLR Body Reference System
+    FE_b(i,:) = Thrust_Force_in_DLR_BRS(Fe(i)-Patm(i)*Nzl_S , Act_b(i,:), Nozzle_misalignment);
+    
+    % In DLR Navigation Reference System
+    FE(i,:) = (D_NB' * FE_b(i,:)')';
+
+    %% Gravitational Force 
+    
+    % In DLR Navigation Reference System
+    FG(i,:) = Gravitational_Force_in_DLR_NRS(latd(i), alt(i), M(i));        
+   
+    % In DLR Body Reference System
+    FG_b(i,:) = (D_NB * FG(i,:)')';
+
+    %% Força Aerodinâmica 
+    
+    % In DLR Navigation Reference System
+    FA(i,:) = Aerodynamic_Force_in_DLR_NRS(q(i,:), Cnalfa(i), Cnbeta(i), Cd(i), Pdin(i), AoA(i,:), Sref);
+   
+    % In DLR Body Reference System
+    FA_b(i,:) = (D_NB * FA(i,:)')';
+    
+    %% Força de Coriolis 
+    
+    % In DLR Navigation Reference System
+    FCo(i,:) = Coriolis_Force_in_DLR_NRS(D_NB, M_p(i), W_b(i,:), CoG(i), le);
+   
+    % In DLR Body Reference System
+    FCo_b(i,:) = (D_NB * FCo(i,:)')';
+    
+%% MOMENTS
+
+    %% Momento Propulsivo 
+    
+    % In DLR Navigation Reference System 
+    MFE(i,:) = Thrust_Moment_in_DLR_NRS(FE(i,:), D_NB, CoG(i), le, Nozzle_eccentricity);
+    
+    % In DLR Body Reference System
+    MFE_b(i,:) = (D_NB * MFE(i,:)')';
+    
+    %% Aerodynamic Moment
+    
+    % In DLR Navigation Reference System
+    MFA(i,:) = Aerodynamic_Moment_in_DLR_NRS(FA(i,:), D_NB, CoG(i), CoP(i));
+    
+    % In DLR Body Reference System
+    MFA_b(i,:) = (D_NB * MFA(i,:)')';
+        
+    %% Aerodynamic Moment due to Fins Misalignment
+    
+    % In DLR Navigation Reference System
+    MA_f(i,:) = Aerodynamic_Moment_due_to_Fins_Misalignment(Pdin(i), D_NB, Cld(i), dl);
+    
+    % In DLR Body Reference System
+    MA_f_b(i,:) = (D_NB * MA_f(i,:)')';
+    
+    %% Aerodynamic Damping Moment
+    
+    % No triedo de Navegação do DLR
     MA_d(i,:) =  Aerodynamic_Damping_Moment( D_NB, W_b(i,:), Coef, Pdin(i,:), V(i,:), V_wind(i,:) );
+    
+    % No triedo do Corpo do DLR
     MA_d_b(i,:) = (D_NB * MA_d(i,:)')';
+    
+    %% Coriolis Moment
+
+    % In DLR Navigation Reference System
+    MCo(i,:) = Coriolis_Moment_in_DLR_NRS(Ixx_p(i), Iyy_p(i), Izz_p(i), D_NB, M_p(i), W_b(i,:), CoG(i), le);
+
+    % In DLR Body Reference System
+    MCo_b(i,:) = (D_NB * MCo(i,:)')';
     
 %% ACELERATIONS
 
-    %% Aceleration in DLR Navigation Reference System
-    % If thrust force is smaller than gravitational force, aceleration must be zero at the beginning
-    if norm(FE(i,:)) < norm(FG(i,:)) && i*dt < 30
+    %% Translation Aceleration 
+    
+    % In DLR Navigation Reference System
+    if norm(FE(i,:)) < norm(FG(i,:)) && i*dt < 10 
         acc(i,:) = [0, 0, 0];
     else
         acc(i,:) = ( FG(i,:) + FA(i,:) + FE(i,:) + FCo(i,:) )/ M(i,:);
     end
     
-    %% Angular Aceleration in DLR Body Reference System
-    I = diag([Ixx(i), Iyy(i), Izz(i)]); %BRS
-  
-    ang_acc_b(i,:) = Angular_Aceleration_in_DLR_Body_Reference_System(I, W_b(i,:), D_NB, 0*MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) ); %BRS
+    % In DLR Body Reference System
+     acc_b(i,:) = (D_NB * acc(i,:)')'; 
     
-     % OVERWRITING TO TEST >>>>> FIXED ROLL RATE 
-%     ang_acc_b(i,3) = 0;
+    %% Angular Aceleration 
+    I = diag([Ixx(i), Iyy(i), Izz(i)]); %BRS
 
-    %% Angular Aceleration in DLR Navigation Reference System
-    ang_acc(i,:) = (D_NB' * ang_acc_b(i,:)')'; %NRS
+    % In DLR Body Reference System
+    ang_acc_b(i,:) = Angular_Aceleration_in_DLR_BRS(I, W_b(i,:), D_NB, MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) );
+    %ang_acc_b(i,3) = 0; % OVERWRITING TO TEST >>>>> FIXED ROLL RATE 
+
+    % In DLR Navigation Reference System
+    ang_acc(i,:) = (D_NB' * ang_acc_b(i,:)')'; 
    
  
 %% M_ALPHA & M_BETA
@@ -298,14 +327,10 @@ for i = 1:n%(n-1)
 
     PID_deg(i,:) =  5.1/M_beta_deg  * [ 1  0.5  1 ]; 
     
-    if PID_deg(i,1) > 0.3
-        PID_deg(i,1) = 0.3;
-    end
-    if PID_deg(i,2) > 0.3
-        PID_deg(i,2) = 0.3;
-    end
-    if PID_deg(i,3) > 0.3
-        PID_deg(i,3) = 0.3;
+    for j = 1:3
+        if PID_deg(i,j) > 0.3
+            PID_deg(i,j) = 0.3;
+        end
     end
     
 
@@ -313,7 +338,7 @@ for i = 1:n%(n-1)
 
     %% Translation Integration using 4th order Runge-Kutta
 
-    [position, V(i+1,:), XYZ(i,:)] = Translation_Integration2(latd(i), lon(i), alt(i), V(i,:), acc(i,:), dt);
+    [position, V(i+1,:), XYZ(i,:)] = Translation_Integration(latd(i), lon(i), alt(i), V(i,:), acc(i,:), dt);
     
     latd(i+1) = position(1);
     lon(i+1)  = position(2);
@@ -328,8 +353,62 @@ for i = 1:n%(n-1)
     
     angles_deg(i+1,:) = angles(i+1,:) * 180/pi;
     
+%% GUIDANCE CONTROL
+
+%     liftoffcounter = i/100;     % the numbers indicate flight time in seconds
     
-%% CONTROL - @TO DO: Should be removed from this simulation!!   
+    % latd control comand
+%     latd_error_old = latd_error(i);
+    latd_error(i+1)= latd_ref(i+1) - latd(i+1)    ;
+%     latd_error_int = latd_error_int + latd_error(i+1) * dt;
+%     latd_error_dev = (latd_error(i+1) - latd_error_old)/dt;
+    
+    % lon control comand
+%     lon_error_old = lon_error(i);
+    lon_error(i+1)= lon_ref(i+1) - lon(i+1);    
+%     lon_error_int = lon_error_int + lon_error(i+1) * dt;
+%     lon_error_dev = (lon_error(i+1) - lon_error_old)/dt;
+    
+    % translate latd_error and lon_error to left_right_error and front_back_error
+    LAT_error = 6378137                * latd_error(i+1);            % [m]
+    LON_error = 6378137*cos(latd(i+1)) *  lon_error(i+1);            % [m]
+    
+    POS = [LON_error, LAT_error, 0];
+    VEL = [-V(i+1,2), V(i+1,1), 0 ];
+    
+    crox = cross(VEL/norm(VEL), POS/norm(POS) );    
+    guin_error = asin(crox(3));                     % [rad]
+    
+    
+    e_2(i) = norm(POS) * cos(guin_error) * sign(dot(POS,VEL));
+    
+%     % e_1 control comand
+%     e_1_old = e_1(i-1);
+    e_1(i) = norm(POS) * sin(guin_error);
+%     e_1_int = e_1_int + e_1(i) * dt;
+%     pitch_error_dev = (pitch_error(i+1) - pitch_error_old)/dt;
+%     
+%     % e_2 control comand    
+%     yaw_error_old  = yaw_error(i);
+%     yaw_error(i+1) = yaw_desired_deg - angles_deg(i+1,2);
+%     yaw_error_int  = yaw_error_int + yaw_error(i+1) * dt;
+%     yaw_error_dev  = (yaw_error(i+1) - yaw_error_old)/dt;
+%     
+%     P = PID_deg(i,1);
+%     I = PID_deg(i,2);
+%     D = PID_deg(i,3);
+%     
+%     % TVA_cmd in degrees here
+%     TVA_cmd(i+1,1) = P * pitch_error(i+1) + I * pitch_error_int + D * pitch_error_dev;
+%     TVA_cmd(i+1,2) = P *   yaw_error(i+1) + I *   yaw_error_int + D *   yaw_error_dev;
+    
+    
+%% ATTITUDE CONTROL - @TO DO: Should be removed from this simulation!!   
+
+    % Computed Angles of Attack no Triedo de Navegação do DLR
+    [AoA_comp(i+1,:), Speed_Att_comp(i+1,:)] =  Angle_Of_Attack_in_DLR_NRS( V(i+1,:), [0 0 0], q(i+1,:));
+    AoA_comp_deg(i+1,:) = AoA_comp(i+1,:) * 180/pi;
+        
 
     liftoffcounter = i/100;     % the numbers indicate flight time in seconds
     
@@ -351,24 +430,25 @@ for i = 1:n%(n-1)
     
     
     pitch_desired_deg = pitch_ref_deg(i+1);
-    Speed_pitch_deg = Speed_pitch_comp(i) * 180/pi;
+    Speed_pitch_deg = Speed_Att_comp(i+1,1) * 180/pi;
     
-    if( abs(AoA_comp_deg(i,1)) > corr_angle_deg )
-       if( AoA_comp_deg(i,1) > 0 )
+    
+    if( abs(AoA_comp_deg(i+1,1)) > corr_angle_deg )
+       if( AoA_comp_deg(i+1,1) > 0 )
              pitch_desired_deg = Speed_pitch_deg - corr_angle_deg;
-       elseif ( AoA_comp_deg(i,1) < 0 )
+       elseif ( AoA_comp_deg(i+1,1) < 0 )
              pitch_desired_deg = Speed_pitch_deg + corr_angle_deg;
        end
     end
 
 
     yaw_desired_deg = yaw_ref_deg(i+1);
-    Speed_yaw_deg = Speed_yaw_comp(i) * 180/pi;
+    Speed_yaw_deg = Speed_Att_comp(i+1,2) * 180/pi;
     
-    if( abs(AoA_comp_deg(i,2)) > corr_angle_deg )
-       if( AoA_comp_deg(i,2) > 0 )
+    if( abs(AoA_comp_deg(i+1,2)) > corr_angle_deg )
+       if( AoA_comp_deg(i+1,2) > 0 )
              yaw_desired_deg = Speed_yaw_deg - corr_angle_deg;
-       elseif (AoA_comp_deg(i,2) < 0 )
+       elseif (AoA_comp_deg(i+1,2) < 0 )
              yaw_desired_deg = Speed_yaw_deg + corr_angle_deg;
        end
     end
@@ -395,14 +475,14 @@ for i = 1:n%(n-1)
     D = PID_deg(i,3);
     
     % TVA_cmd in degrees here
-    TVA_cmd(i+1,2) = P * pitch_error(i+1) + I * pitch_error_int + D * pitch_error_dev;
-    TVA_cmd(i+1,1) = P *   yaw_error(i+1) + I *   yaw_error_int + D *   yaw_error_dev;
+    TVA_cmd(i+1,1) = P * pitch_error(i+1) + I * pitch_error_int + D * pitch_error_dev;
+    TVA_cmd(i+1,2) = P *   yaw_error(i+1) + I *   yaw_error_int + D *   yaw_error_dev;
 
     if ( liftoffcounter < 15 || ( liftoffcounter > 30 && liftoffcounter < 85 )  )
         if (M_beta(i) > 0)
             % for some time try to compensate the impact of malpha as an acceleraton offset
-            TVA_cmd(i+1,2) = TVA_cmd(i+1,2) + AoA_comp_deg(i,1) * M_alpha(i)/M_beta(i);
-            TVA_cmd(i+1,1) = TVA_cmd(i+1,1) + AoA_comp_deg(i,2) * M_alpha(i)/M_beta(i);
+            TVA_cmd(i+1,1) = TVA_cmd(i+1,1) + AoA_comp_deg(i,1) * M_alpha(i)/M_beta(i);
+            TVA_cmd(i+1,2) = TVA_cmd(i+1,2) + AoA_comp_deg(i,2) * M_alpha(i)/M_beta(i);
         else
             TVA_cmd(i+1,2) = 0;
             TVA_cmd(i+1,1) = 0;
@@ -413,12 +493,14 @@ for i = 1:n%(n-1)
         TVA_cmd(i+1,:) = 3 * TVA_cmd(i+1,:)/norm(TVA_cmd(i+1,:));
     end
     
-    TVA_cmd(i+1,:) =  TVA_cmd(i+1,:) * pi/180;          %change back to [rd]
+    TVA_cmd(i+1,:) =  TVA_cmd(i+1,:) * pi/180;        % change back to [rd]
 
 
-%     %OVERWRITING FOR DEBUGGING PURPOSES!!!    >>> fixed nozzle
+    % OVERWRITING TO TEST fixed nozzle
 %     TVA_cmd(i+1,:) = [0.1 0] * pi/180;
 
+    
+    
 %% DMARS PROTOCOL
     
       %No protocolo real, V é passado na seguinte ordem: [Veast, Vnorth, Vup]
@@ -447,15 +529,15 @@ for i = 1:n%(n-1)
 end
 
 %% Organize
-AoA_deg   = [AoA_pitch,  AoA_yaw] * 180/pi;
+
 I         = [Ixx  , Iyy  , Izz  ]; 
 I_p       = [Ixx_p, Iyy_p, Izz_p];
 % xyz       = [x(:,1), y(:,1), z(:,1)];
 Act_cmd_b_deg = Act_cmd_b * 180/pi;
 Act_b_deg = Act_b * 180/pi;
 
-lon = 180/pi * lon;
-latd = 180/pi * latd;
+lon_deg = 180/pi * lon;
+latd_deg = 180/pi * latd;
 
 M_alpha_beta_deg = [M_alpha(:), M_beta(:)] * 180/pi;
 
@@ -463,6 +545,12 @@ W_b_deg = W_b * 180/pi;
 
 
 %% PLOTS
+
+figure;
+plot(e_1);
+hold;
+plot(e_2);
+legend('e_1','e_2');
 
 %% Footprint versus Altitude - SCATTER
 % subplot(1,2,1);
@@ -488,9 +576,9 @@ W_b_deg = W_b * 180/pi;
 %% Footprint versus Altitude - PLOTS
 figure();
 subplot(1,2,1);
-plot(lon_ref(1:n), latd_ref(1:n), 'b', 'LineWidth', 1)
+plot(lon_ref_deg(1:n), latd_ref_deg(1:n), 'b', 'LineWidth', 1)
 hold on;
-plot(lon(1:n), latd(1:n), 'r', 'LineWidth', 1)
+plot(lon_deg(1:n), latd_deg(1:n), 'r', 'LineWidth', 1)
 title('Footprint X Altitude');
 xlabel('Lon [º]');
 ylabel('Latd [º]');
@@ -500,8 +588,12 @@ legend('reference','executed');
 
 % Rough trajectory plane
 subplot(1,2,2);
-distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2) * pi/180;
-distance_ref = 6378.137*sqrt((lon_ref-lon_ref(1)).^2+(latd_ref-latd_ref(1)).^2) * pi/180;
+distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2);
+distance_ref = 6378.137*sqrt((lon_ref-lon_ref(1)).^2+(latd_ref-latd_ref(1)).^2);
+
+% distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2) * pi/180;
+% distance_ref = 6378.137*sqrt((lon_ref_deg-lon_ref_deg(1)).^2+(latd_ref_deg-latd_ref_deg(1)).^2) * pi/180;
+
 plot(distance_ref, alt_ref/1e3, 'b', 'LineWidth', 1);
 hold on;
 plot(distance, alt/1e3,'r', 'LineWidth', 1);
@@ -512,7 +604,7 @@ legend('reference','executed');
 axis('equal');
 grid on;
 
-%%
+%% AoA and TVA_cmd
 % figure();
 % plot(TVA_cmd * 180/pi,'DisplayName','TVA-cmd')
 % hold;
@@ -520,6 +612,7 @@ grid on;
 % plot( AoA_comp_deg(:,2) .* M_alpha_beta_deg(:,1)./M_alpha_beta_deg(:,2),'y','DisplayName','AoAy-comp-deg * Ma/Mb')
 % legend();
 
+%%
 figure();
 plot(angles_deg(1:n,1), 'b')
 hold
@@ -617,29 +710,30 @@ legend('pitch','yaw','roll', 'Pitch-ref', 'Yaw-ref', 'Location','northwest')
 % plot(TVA_cmd(1:8000,:),'DisplayName','TVA_cmd')
 % legend()
 
-figure()
-plot( MA_f_b(:,3) + MA_d_b(:,3))
-hold on
-plot(MCo_b(:,3) )
-plot( MA_f_b(:,3) + MA_d_b(:,3) + MCo_b(:,3) )
-legend('Driving Moment + Damping Moment', 'Coriolis Moment', 'Driving Moment + Damping Moment + Coriolis Moment')
-xlabel('Time [0.01s]')
-ylabel('Moment [N.m]')
-title('Roll Moments')
+% figure()
+% plot( MA_f_b(:,3) + MA_d_b(:,3))
+% hold on
+% plot(MCo_b(:,3) )
+% plot( MA_f_b(:,3) + MA_d_b(:,3) + MCo_b(:,3) )
+% legend('Driving Moment + Damping Moment', 'Coriolis Moment', 'Driving Moment + Damping Moment + Coriolis Moment')
+% xlabel('Time [0.01s]')
+% ylabel('Moment [N.m]')
+% title('Roll Moments')
 
 %% Clean up 
 clear('Coef'); clear('x');     clear('y');   clear('z');     clear('ans');   clear('I_times_ang_acc');
 clear('Ixx');  clear('Iyy');   clear('Izz'); clear('Ixx_p'); clear('Iyy_p'); clear('Izz_p');            clear('angles');
 clear('D_NB'); clear('D_l');   clear('L_C'); clear('S');     clear('data');  clear('AoA_pitch');        clear('AoA_yaw');
 clear('Nz_d'); clear('Nzl_S'); clear('R_e'); clear('R_l');   clear('R_lh');  clear('data_size');        clear('Exp_Omega_k_T');
-clear('dt');   clear('f');     clear('fx');  clear('fy');    clear('fz');    clear('Fe_traj');          clear('Mextra_b'); 
+clear('dt');   clear('f');     clear('fx');  clear('fy');    clear('fz');    clear('Fe_traj');          clear('liftoffcounter');
 clear('i');    clear('le');    clear('T');   clear('pitch'); clear('yaw');   clear('roll');             clear('position');
 clear('q0');   clear('q1');    clear('q2');  clear('q3');    clear('w_b');   clear('alt_traj');         clear('M_alpha');       
 clear('k1');   clear('k2');    clear('k3');  clear('k4');    clear('dl');    clear('M_beta');          % clear('data_100hz');
-clear('Dref'); clear('Sref');  clear('Mach');clear('P');     clear('D');     clear('M_beta_deg');       % clear('n');     
-clear('ii');   clear('N');     clear('');    clear('');      clear('');      clear('liftoffcounter');   clear('corr_angle_deg');
+clear('Dref'); clear('Sref');  clear('Mach');clear('P');     clear('D');     clear('M_beta_deg');       clear('n');     
+clear('ii');   clear('N');     clear('j');   clear('distance_ref');   clear('corr_angle_deg');
+clear('');  clear('');
 
-clear('DMARS_0');     clear('Sound_Velocity');
+clear('DMARS_0');     clear('Sound_Velocity');      clear('distance');
 clear('DMARS_u');     clear('Nozzle_eccentricity'); clear('Nozzle_misalignment');   
 clear('DMARS_u_1');   clear('pitch_error');         clear('yaw_error');            
 clear('DMARS_u_2');   clear('Speed_pitch_deg');     clear('Speed_yaw_deg');
