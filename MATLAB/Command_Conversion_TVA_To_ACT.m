@@ -30,7 +30,7 @@ TVA_p_old = TVA_old(1);
 TVA_y_old = TVA_old(2);
 
 % Roll Pediction:
-roll1 = roll_angle + TVA_time(0, TVA_p, TVA_p_old, TVA_y, TVA_y_old) * roll_rate ;
+roll1 = roll_angle + TVA_time(0.011, TVA_p, TVA_p_old, TVA_y, TVA_y_old) * roll_rate ;
 % roll1 = roll_angle;
 
 % Conversion from inertial to body fixed nozzle deflection angles:
@@ -65,4 +65,9 @@ function [Act315, Act225] = TVAi_r(TVA_p, TVA_y, roll1)
     
     Act315 =  - TVA_p * sin(-roll1 + pi/4) - TVA_y * sin(roll1 + pi/4);     
     Act225 =  - TVA_p * cos(-roll1 + pi/4) + TVA_y * cos(roll1 + pi/4);
+    
+    % Inverse transformation:
+    % TVA_y_2 =  - Act315 * cos(-roll1 + pi/4) + Act225 * sin(-roll1 + pi/4);     
+    % TVA_p_2 =  - Act315 * cos( roll1 + pi/4) - Act225 * sin(roll1 + pi/4);
+    
 end

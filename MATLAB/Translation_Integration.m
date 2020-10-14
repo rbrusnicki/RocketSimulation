@@ -1,4 +1,4 @@
-function [position, Velocity, XYZ] = Translation_Integration2( latd, lon, alt, V, acc, dt)
+function [position, Velocity, XYZ] = Translation_Integration( latd, lon, alt, V, acc, dt)
 
 w_t = 7.2921151467e-5;                                     %Velocidade angular da Terra       rad/s]
 R_e = 6378137;                                             %Raio equatorial                      [m]
@@ -35,19 +35,19 @@ fz = @(t, z) [ z(2) + acc(3) * t  , acc(3) ];
 k1 = fx( 0       ,    x                );
 k2 = fx( 0.5 * dt,    x + 0.5 * dt * k1);
 k3 = fx( 0.5 * dt,    x + 0.5 * dt * k2);
-k4 = fx( 0       ,    x + 1.0 * dt * k3);
+k4 = fx( 1.0 * dt,    x + 1.0 * dt * k3);
 X = x + (1/6)*(k1 + 2*k2 + 2*k3 + k4)*dt; 
 
 k1 = fy( 0       ,    y                );
 k2 = fy( 0.5 * dt,    y + 0.5 * dt * k1);
 k3 = fy( 0.5 * dt,    y + 0.5 * dt * k2);
-k4 = fy( 0       ,    y + 1.0 * dt * k3);
+k4 = fy( 1.0 * dt,    y + 1.0 * dt * k3);
 Y = y + (1/6)*(k1 + 2*k2 + 2*k3 + k4)*dt; 
 
 k1 = fz( 0       ,    z                );
 k2 = fz( 0.5 * dt,    z + 0.5 * dt * k1);
 k3 = fz( 0.5 * dt,    z + 0.5 * dt * k2);
-k4 = fz( 0       ,    z + 1.0 * dt * k3);
+k4 = fz( 1.0 * dt,    z + 1.0 * dt * k3);
 Z = z + (1/6)*(k1 + 2*k2 + 2*k3 + k4)*dt; 
 
 

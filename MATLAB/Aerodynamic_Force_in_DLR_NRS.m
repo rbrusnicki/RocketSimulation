@@ -29,9 +29,10 @@ AoA_pitch = AoA(1);
 AoA_yaw = AoA(2);
 
 % DLR Euler Angles
-pitch = atan2( -2*q(3)*q(4) + 2*q(1)*q(2) ,  q(1)^2 - q(2)^2 - q(3)^2 + q(4)^2 );
-yaw   =  asin(  2*q(2)*q(4) + 2*q(1)*q(3) );
-roll  = atan2( -2*q(2)*q(3) + 2*q(1)*q(4), q(1)^2 + q(2)^2 - q(3)^2 - q(4)^2 );
+[pitch, yaw, roll] = quat2angle(q, 'XYZ');
+% pitch = atan2( -2*q(3)*q(4) + 2*q(1)*q(2) ,  q(1)^2 - q(2)^2 - q(3)^2 + q(4)^2 );
+% yaw   =  asin(  2*q(2)*q(4) + 2*q(1)*q(3) );
+% roll  = atan2( -2*q(2)*q(3) + 2*q(1)*q(4), q(1)^2 + q(2)^2 - q(3)^2 - q(4)^2 );
 
 
 
@@ -41,36 +42,36 @@ FA_pitch = Pdin * Sref * Cnalfa * AoA_pitch;
 % Magnitude da Força de arrasto devida ao Angulo de Derrapagem
 FA_yaw   = Pdin * Sref * Cnbeta * AoA_yaw;
 
-
 % Magnitude da Força de arrasto na direção Longitudinal do Foguete
 FA_long  = Pdin * Sref * Cd;
 
 %
-% Força de arrasto devida ao Angulo de Ataque no triedo de Navegação do DLR
-FAp = [    0                   ;
-         FA_pitch * cos(pitch) ;
-         FA_pitch * sin(pitch) ];
-     
-% Força de arrasto devida ao Angulo de Derrapagem no triedo de Navegação do DLR
-FAy = [ -FA_yaw * cos(yaw) ;
-           0                 ;
-         FA_yaw * sin(yaw)   ];
-     
-% Força de arrasto na direção Longitudinal do Foguete, no triedo de Navegação do DLR 
-FAl = [ -FA_long * sin(yaw)            ;
-         FA_long * sin(pitch) * cos(yaw)
-        -FA_long * cos(pitch) * cos(yaw) ];
-
-% Força Aerodinâmica total
-FA = (FAp + FAy + FAl)';    % Precisa retornar como vetor linha
+% % Força de arrasto devida ao Angulo de Ataque no triedo de Navegação do DLR
+% FAp = [    0                   ;
+%          FA_pitch * cos(pitch) ;
+%          FA_pitch * sin(pitch) ];
+%      
+% % Força de arrasto devida ao Angulo de Derrapagem no triedo de Navegação do DLR
+% FAy = [ -FA_yaw * cos(yaw) ;
+%            0                 ;
+%          FA_yaw * sin(yaw)   ];
+%      
+% % Força de arrasto na direção Longitudinal do Foguete, no triedo de
+% Navegação do DLR k
+% FAl = [ -FA_long * sin(yaw)            ;
+%          FA_long * sin(pitch) * cos(yaw);
+%         -FA_long * cos(pitch) * cos(yaw) ];
+% 
+% % Força Aerodinâmica total
+% FA = (FAp + FAy + FAl)';    % Precisa retornar como vetor linha
 
 %%
-% % case 'xyz' for roll = 0
-% DCM = [   cos(yaw),         sin(yaw)*sin(pitch),    -sin(yaw)*cos(pitch);
-%                  0,         cos(pitch),             sin(pitch);
-%            sin(yaw),         -cos(yaw)*sin(pitch),  cos(yaw)*cos(pitch)];
-%         
-% FA = (DCM' * [-FA_yaw, FA_pitch, -FA_long]')';
+% case 'xyz' for roll = 0
+DCM = [   cos(yaw),         sin(yaw)*sin(pitch),    -sin(yaw)*cos(pitch);
+                 0,         cos(pitch),             sin(pitch);
+          sin(yaw),         -cos(yaw)*sin(pitch),   cos(yaw)*cos(pitch)];
+        
+FA = (DCM' * [-FA_yaw, FA_pitch, -FA_long]')';
 
 
 

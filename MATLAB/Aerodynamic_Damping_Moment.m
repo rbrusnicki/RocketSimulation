@@ -14,12 +14,12 @@ function [MAd] = Aerodynamic_Damping_Moment(D_NB, W_b, Coef, Pdin, V, V_wind)
 %
 % OUTPUT VETORIAL:
 % MAd: Momento Aerodinamico de Amortecimento no Triedo de Navegação do DLR      [N.m]
-% 
 %
 % Autor: Roberto Brusnicki
 % Data: 06/12/2015
-
+%
 % Diâmetro do S50 [m]
+
 D = 1.72;               %    1.72;
 
 % Area de Referência
@@ -37,4 +37,3 @@ end
 
 % Momento Aerodinamico de Amortecimento no Triedo de Navegação do DLR
 MAd = ( D_NB' * MAd_b )';
-       

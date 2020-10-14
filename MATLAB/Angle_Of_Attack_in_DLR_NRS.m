@@ -56,42 +56,47 @@ else
 %     
 %     Speed_pitch = asin(-Vy/Vmod);          % rad
 %     Speed_yaw = asin( Vx/(Vmod*cos(Speed_pitch)) );        % rad
-
-%     S_q( = angle2quat(Speed_pitch, Speed_yaw, 0, 'XYZ');
-    S_q  = [ cos(Speed_pitch/2) * cos(Speed_yaw/2), ...
-             sin(Speed_pitch/2) * cos(Speed_yaw/2), ...
-             cos(Speed_pitch/2) * sin(Speed_yaw/2), ...
-             sin(Speed_pitch/2) * sin(Speed_yaw/2)];
-      
- 
+%%
+    S_q = angle2quat(Speed_pitch, Speed_yaw, 0, 'XYZ');
+% %     S_q  = [ cos(Speed_pitch/2) * cos(Speed_yaw/2), ...
+% %              sin(Speed_pitch/2) * cos(Speed_yaw/2), ...
+% %              cos(Speed_pitch/2) * sin(Speed_yaw/2), ...
+% %              sin(Speed_pitch/2) * sin(Speed_yaw/2)];
+% %       
+%% 
     [r1, r2, ~] = quat2angle(q, 'XYZ');
     q = angle2quat(r1,r2,0, 'XYZ');
 %     
          
-    q_c = [ q(1), -q(2), -q(3), -q(4)]';
+    q_c = [ q(1), -q(2), -q(3), -q(4)];
                
-%     S = quatmultiply( q_c, S_q( );
+    S = quatmultiply( q_c, S_q );
 
+% % 
+% % % Calculate vector portion of quaternion product
+% % % vec = s1*v2 + s2*v1 + cross(v1,v2)
+% % vec = [ q_c(1) * S_q(2)                    q_c(1) * S_q(3)                q_c(1) * S_q(4)] + ...
+% %       [ S_q(1) * q_c(2)                    S_q(1) * q_c(3)                S_q(1) * q_c(4)] + ...
+% %       [ q_c(3) * S_q(4) - q_c(4) * S_q(3)  q_c(4) * S_q(2)-q_c(2)*S_q(4)  q_c(2)*S_q(3)-q_c(3)*S_q(2)];
+% % 
+% % % Calculate scalar portion of quaternion product
+% % % scalar = s1*s2 - dot(v1,v2)
+% % scalar = q_c(1)*S_q(1) - q_c(2)*S_q(2) - q_c(3)*S_q(3) - q_c(4)*S_q(4);
+% %     
+% % S = [scalar  vec];
+%%
 
-% Calculate vector portion of quaternion product
-% vec = s1*v2 + s2*v1 + cross(v1,v2)
-vec = [ q_c(1) * S_q(2)                    q_c(1) * S_q(3)                q_c(1) * S_q(4)] + ...
-      [ S_q(1) * q_c(2)                    S_q(1) * q_c(3)                S_q(1) * q_c(4)] + ...
-      [ q_c(3) * S_q(4) - q_c(4) * S_q(3)  q_c(4) * S_q(2)-q_c(2)*S_q(4)  q_c(2)*S_q(3)-q_c(3)*S_q(2)];
+ [PPitch, YYaw, RRoll] = quat2angle(S, 'XYZ');
 
-% Calculate scalar portion of quaternion product
-% scalar = s1*s2 - dot(v1,v2)
-scalar = q_c(1)*S_q(1) - q_c(2)*S_q(2) - q_c(3)*S_q(3) - q_c(4)*S_q(4);
-    
-S = [scalar  vec];
-
-%  [PPitch, YYaw, RRoll] = quat2angle(S, 'XYZ');
-   PPitch = atan2( -2*(S(3)*S(4) - S(1)*S(2)),   S(1)^2 - S(2)^2 - S(3)^2 + S(4)^2 );
-   YYaw   =  asin( 2*(S(2)*S(4) + S(1)*S(3)) );
-   %RRoll  = atan2( -2*(S(2)*S(3) - S(1)*S(4)), S(1)^2 + S(2)^2 - S(3)^2 - S(4)^2 );
-        
+% %    PPitch = atan2( -2*(S(3)*S(4) - S(1)*S(2)),   S(1)^2 - S(2)^2 - S(3)^2 + S(4)^2 );
+% %    YYaw   =  asin( 2*(S(2)*S(4) + S(1)*S(3)) );
+% %    %RRoll  = atan2( -2*(S(2)*S(3) - S(1)*S(4)), S(1)^2 + S(2)^2 - S(3)^2 - S(4)^2 );
+% %         
    AoA_pitch = asin(sin(PPitch)*cos(YYaw));
    AoA_yaw = YYaw;
+   
+%    AoA_pitch = round(1e8*AoA_pitch)/1e8;
+%    AoA_yaw = round(1e8*AoA_yaw)/1e8;
    
    AoA = [AoA_pitch, AoA_yaw];
    Speed_Attitude = [Speed_pitch, Speed_yaw];
