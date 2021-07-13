@@ -1,4 +1,6 @@
-function [W, W_b, Q, angles] = Rotation_Integration(w, w_b, ang_acc, D_NB, q, dt )
+function [W, W_b, Q, angles] = Rotation_Integration(w_b, ang_acc, q, dt )
+
+D_NB = DCM_NRS_to_BRS( q );
 
 W_b = w_b + ( D_NB * ang_acc' )' * dt;
 % % wx = [   0,  w_b(1) ];
@@ -51,6 +53,7 @@ if wb ~= 0
 else
     Exp_Omega_k_T = eye(4) + (dt/2) * S;
 end
+
 
 Q = ( Exp_Omega_k_T * q' )';
 Q = Q / norm(Q);         %normalização do quaternion

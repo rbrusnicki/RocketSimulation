@@ -65,9 +65,22 @@ Izz     = data_100hz(:,13);              % Moment of inertia along z axis       
 Ixx_p   = data_100hz(:,21);              % d(Ixx)/dt                                        [Kg.m^2/s]
 Iyy_p   = data_100hz(:,20);              % d(Iyy)/dt                                        [Kg.m^2/s]
 Izz_p   = data_100hz(:,19);              % d(Izz)/dt                                        [Kg.m^2/s]
+
 latd_ref_deg= data_100hz(:,43);          % Trajectory geodetic latitude reference           [º]
 lon_ref_deg = data_100hz(:,41);          % Trajectory longitude reference                   [º]
 alt_ref = data_100hz(:,38) * 1e3;        % Trajectory altitude reference                    [m]
+
+lla_smooth = [latd_ref_deg, lon_ref_deg, alt_ref];                 % Correction necessary for the current input used
+for i = 70:n-70
+    lla_smooth(i,1) = mean(latd_ref_deg(i-69:i+70));
+    lla_smooth(i,2) = mean(lon_ref_deg(i-69:i+70));
+    lla_smooth(i,3) = mean(alt_ref(i-69:i+70));
+end
+latd_ref_deg = lla_smooth(:,1);
+lon_ref_deg = lla_smooth(:,2);
+alt_ref = lla_smooth(:,3);
+clear('lla_smooth');
+
 mach_number   = data_100hz(:,39);        % Velocity in Mach number for nominal trajectory   [-] 
 pitch_ref_deg = data_100hz(:,52);        % DLR Pitch reference                              [º]
 yaw_ref_deg   = data_100hz(:,53);        % DLR Yaw reference                                [º]
@@ -139,7 +152,7 @@ M_alpha     = zeros(n,1);
 M_beta      = zeros(n,1);
 PID_deg     = zeros(n,3);               % Attitude PID gains computed as a function of M_beta in degrees
 
-acc_k       = zeros(n,2);
+k_acc       = zeros(n,2);               % Normalized sideways/front-back acelerations
 GUI_PID     = zeros(n,3);               % Guidance PID gains computed as a function of acc_k
 
 pitch_error = zeros(n,1);
@@ -382,7 +395,7 @@ for i = 1:(n-1)
 
     % In DLR Body Reference System
     ang_acc_b(i,:) = Angular_Aceleration_in_DLR_BRS(In, W_b(i,:), D_NB, 0*MCo(i,:), MFE(i,:), MFA(i,:), MA_f(i,:), MA_d(i,:) );
-    %ang_acc_b(i,3) = 0; % OVERWRITING TO TEST >>>>> FIXED ROLL RATE 
+%    ang_acc_b(i,3) = 0; % OVERWRITING TO TEST >>>>> FIXED ROLL RATE 
 %    ang_acc_b(i,:) = [0, 0, 0];
 
     
@@ -427,18 +440,12 @@ for i = 1:(n-1)
     %% M_beta
     M_beta(i) = norm(FE(i,:)) * (le - CoG(i)) * (-1 * pi / 180) / Ixx(i);
 
-%% k_acc : lateral & vertical accelerations due to 1º of delta in attitude
+%% acc_k : Normalized lateral & vertical accelerations (due to 1º of delta in attitude)
+    q_aux = angle2quat(pitch_ref(i), yaw_ref(i), roll_ref(i), 'XYZ');
     
-    acc_k(i,:) = lateral_and_vertical_acc(q(i,:), acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
+%     k_acc(i,:) = lateral_and_vertical_acc(q_aux, acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
+    k_acc(i,:) = lateral_and_vertical_acc(q(i,:), acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
         Cnbeta(i), Cd(i), Pdin(i), AoA(i,:), Sref, M(i), M_p(i), W_b(i,:), CoG(i), le);
-    
-%     x = cos(ele) * sin(azi);
-%     y = cos(ele) * cos(azi);
-%     z = sin(ele);
-%     pv_yaw = asin(y) ;
-%     pv_pitch = atan2(x,z) ;
-    
-%     k_acc(i) = ;
     
     
 %% GAINS - @TO DO: Should be removed from this simulation!!
@@ -473,7 +480,7 @@ for i = 1:(n-1)
     % OVERWRITING TO TEST >>>>  FIXED ROLL RATE 
 %      W_b(i,:) = [0, 0, 0] * pi/180;
     
-    [W(i+1,:), W_b(i+1,:), q(i+1,:), angles(i+1,:)] = Rotation_Integration(W(i,:), W_b(i,:), ang_acc(i,:), D_NB, q(i,:), dt );
+    [W(i+1,:), W_b(i+1,:), q(i+1,:), angles(i+1,:)] = Rotation_Integration( W_b(i,:), ang_acc(i,:), q(i,:), dt );
     
     angles_deg(i+1,:) = angles(i+1,:) * 180/pi;
 %     anglesdeg = angles_deg(i+1,:)
@@ -489,7 +496,7 @@ for i = 1:(n-1)
 
     liftoffcounter = i/100;     % the numbers indicate flight time in seconds
  
-    if( mod(i,10) == 1 )
+%     if( mod(i,10) == 1 )
         latd_error = latd_ref(i+1) - latd(i+1);
         lon_error = lon_ref(i+1) - lon(i+1);
 
@@ -511,40 +518,42 @@ for i = 1:(n-1)
         % current moment to the left side of the trajectory when seen from
         % above, facing future positions
         
-
-%         azimuth_error
-%         elevation_error 
+        e_1(i+1) = norm(POS) * sin(guin_error);                      % sideways error in meters
+        e_2(i+1) = norm(POS) * cos(guin_error) * sign(dot(POS,VEL)) * sign(VEL_Z);% front-back error in meters
         
-        %e_1 left_right_error
-        %e_2 front_back_error
-        if i == 1
-            e_1_old = 0;
-            e_2_old = 0;
-        else
-            e_1_old = e_1(i-10);
-            e_2_old = e_2(i-10);
-        end    
-        e_1(i:i+9) = norm(POS) * sin(guin_error) * ones(10,1);
-        e_1_dev = ( e_1(i) - e_1_old ) / (10 * dt);
-        e_1_int = e_1_int + e_1(i) * 10 * dt; 
-        %positive values means the rocket should rotate positively around up-axis
-        %to correct its trajectory
-        %
-        %negative values means the rocket should rotate negatively around up-axis
-        %to correct its trajectory
 
-        %front_back_error
-        e_2(i:i+9) = norm(POS) * cos(guin_error) * sign(dot(POS,VEL)) * sign(VEL_Z);
-        e_2_dev = ( e_2(i) - e_2_old ) / (10 * dt);
-        e_2_int = e_2_int + e_2(i) * 10 * dt; 
-        %Positive values means the rocket should decrease its elevation angle  
-        %during an acendent flight (or increase its elevation angle in an decendent
-        %flight) to correct its trajectory
-        %
-        %Negative values means the rocket should increase its elevation angle  
-        %during an acendent flight (or decrease its elevation angle in an decendent
-        %flight) to correct its trajectory
+%     if( mod(i,10) == 1 )
+%         %e_1 left_right_error
+%         %e_2 front_back_error
+%         if i == 1
+%             e_1_old = 0;
+%             e_2_old = 0;
+%         else
+%             e_1_old = e_1(i-10);
+%             e_2_old = e_2(i-10);
+%         end    
+%         e_1(i:i+9) = norm(POS) * sin(guin_error) * ones(10,1);              %sideways error in meters
+%         e_1_dev = ( e_1(i) - e_1_old ) / (10 * dt);
+%         e_1_int = e_1_int + e_1(i) * 10 * dt; 
+%         %positive values means the rocket should rotate positively around up-axis
+%         %to correct its trajectory
+%         %
+%         %negative values means the rocket should rotate negatively around up-axis
+%         %to correct its trajectory
+% 
+%         %front_back_error
+%         e_2(i:i+9) = norm(POS) * cos(guin_error) * sign(dot(POS,VEL)) * sign(VEL_Z);
+%         e_2_dev = ( e_2(i) - e_2_old ) / (10 * dt);
+%         e_2_int = e_2_int + e_2(i) * 10 * dt; 
+%         %Positive values means the rocket should decrease its elevation angle  
+%         %during an acendent flight (or increase its elevation angle in an decendent
+%         %flight) to correct its trajectory
+%         %
+%         %Negative values means the rocket should increase its elevation angle  
+%         %during an acendent flight (or decrease its elevation angle in an decendent
+%         %flight) to correct its trajectory
  
+    if( mod(i,10) == 1 )
  
 %         Gui_PID(i,1:3) =  15.6/norm(acc_b(i,:))  * [ 0.8e-3,  8.9e-6,  18e-3 ]; 
 % 
@@ -603,8 +612,6 @@ for i = 1:(n-1)
     
 %% ATTITUDE CONTROL - @TO DO: Should be removed from this simulation!!   
     
-
-        
     % Computed Angles of Attack no Triedo de Navegação do DLR
     [AoA_comp(i+1,:), Speed_Att_comp(i+1,:)] =  Angle_Of_Attack_in_DLR_NRS( V(i+1,:), [0 0 0], q(i+1,:));
     AoA_comp_deg(i+1,:) = AoA_comp(i+1,:) * 180/pi;
@@ -699,24 +706,17 @@ for i = 1:(n-1)
         end
     end
     
-  
     if norm(TVA_cmd(i+1,:)) > 3
         TVA_cmd(i+1,:) = 3 * TVA_cmd(i+1,:)/norm(TVA_cmd(i+1,:));
     end
-    
-    
+     
     % Low_pass2_10msec(D, w0, &max_x_filt, &pitch_ar, max_x);
     % Low_pass2_10msec(D, w0, &max_y_filt, &yaw_ar, max_y);
     
-    
     TVA_cmd(i+1,:) =  TVA_cmd(i+1,:) * pi/180;        % change back to [rd]
-
 
     % OVERWRITING TO TEST fixed nozzle
 %       TVA_cmd(i+1,:) = [0 0] * pi/180;
-    
-
-    
     
 %% DMARS PROTOCOL
     
@@ -746,7 +746,6 @@ for i = 1:(n-1)
 end
 
 %% Organize
-% 
 % new_pitch_deg = new_pitch * 180/pi;
 % new_yaw_deg = new_yaw * 180/pi;
 
@@ -779,13 +778,15 @@ subplot(2,1,1);
 plot(time(1:n),e_1(1:n));
 hold;
 plot(time(1:n),e_2(1:n));
-legend('e_1','e_2');
+legend('Sideways error (e_1)','Front-back error (e_2)');
+title('Sideways & Front-back errors');
 
 subplot(2,1,2);
 plot(time(1:n),latd_deg(1:n)-latd_ref_deg(1:n));
 hold;
 plot(time(1:n),lon_deg(1:n)-lon_ref_deg(1:n));
-legend('latd','lon');
+legend('latd error','lon error');
+title('Latitude & Longitude errors');
 
 %plot(azimuth_error);
 % plot(elevation_error);
@@ -793,12 +794,14 @@ legend('latd','lon');
 
 
 figure;
-plot(time(1:n), acc_k(1:n,:));
+plot(time(1:n), k_acc(1:n,:));
 hold;
-legend('up_acc', 'lat_acc_mod');
+legend('up_{acc}', 'lat_{acc}');
+title('Normalized Accelerations');
 
 
 %% Footprint versus Altitude - SCATTER
+% figure()
 % subplot(1,2,1);
 % scatter(lon(1:n), latd(1:n), 3, alt(1:n), 'filled')
 % title('Footprint X Altitude');
@@ -811,7 +814,7 @@ legend('up_acc', 'lat_acc_mod');
 % % Rough trajectory plane - SCATTER
 % subplot(1,2,2);
 % distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2) * pi/180;
-% scatter(distance, alt/1e3, 3, 0:n, 'filled');
+% scatter(distance, alt/1e3, 3, 1:length(alt), 'filled');
 % title('Trajectory plane over time');
 % xlabel('Distance from launch-pad [km]');
 % ylabel('Altitude [km]');
@@ -1028,25 +1031,57 @@ ylim([low-1 high+1]);
 % ylabel('Moment [N.m]')
 % title('Roll Moments')
 
-%% Clean up 
-clear('Coef'); clear('x');     clear('y');   clear('z');     clear('ans');   clear('I_times_ang_acc');
-% clear('Ixx');  clear('Iyy');   clear('Izz'); clear('Ixx_p'); clear('Iyy_p'); clear('Izz_p');            clear('angles');
-clear('D_NB'); clear('D_l');   clear('L_C'); clear('S');     clear('data');  clear('AoA_pitch');        clear('AoA_yaw');
-clear('Nz_d'); clear('Nzl_S'); clear('R_e'); clear('R_l');   clear('R_lh');  clear('data_size');        clear('Exp_Omega_k_T');
-clear('dt');   clear('f');     clear('fx');  clear('fy');    clear('fz');    clear('Fe_traj');          clear('liftoffcounter');
-clear('i');    %clear('le');    clear('T');   clear('pitch'); clear('yaw');   clear('roll');             clear('position');
-clear('q0');   clear('q1');    clear('q2');  clear('q3');    clear('w_b');   clear('alt_traj');         clear('M_alpha');       
-clear('k1');   clear('k2');    clear('k3');  clear('k4');    clear('dl');   % clear('M_beta');           clear('data_100hz');
-clear('Dref'); clear('Sref');  clear('Mach');clear('P');     clear('D');     clear('M_beta_deg');       %clear('n');     
-clear('ii');   clear('N');     clear('j');   clear('distance_ref');   clear('corr_angle_deg');
-clear('');  clear('');
+%% Dados para a ACE-V
 
-clear('DMARS_0');     clear('Sound_Velocity');      clear('distance');
-clear('DMARS_u');     clear('Nozzle_eccentricity'); clear('Nozzle_misalignment');   
-clear('DMARS_u_1');  % clear('pitch_error');         clear('yaw_error');            
-clear('DMARS_u_2');   clear('Speed_pitch_deg');     clear('Speed_yaw_deg');
-clear('DMARS_u_3');   clear('pitch_error_dev(i+1)');     clear('yaw_error_dev(i+1)');
-clear('DMARS_y');    % clear('pitch_error_int');     clear('yaw_error_int');
-clear('DMARS_y_1');   clear('pitch_error_old');     clear('yaw_error_old');
-clear('DMARS_y_2');   clear('pitch_desired_deg');   clear('yaw_desired_deg'); 
-%  clear('XYZ');
+n = 8200;
+parametros = zeros(n,23);
+
+parametros(:, 1) = time(1:n,1);
+parametros(:, 2) = pitch_ref_deg(1:n,1);
+parametros(:, 3) = yaw_ref_deg(1:n,1);
+parametros(:, 4) = angles_deg(1:n,1);
+parametros(:, 5) = angles_deg(1:n,2);
+parametros(:, 6) = angles_deg(1:n,3);
+parametros(:, 7) = M_alpha_beta_deg(1:n,1);
+parametros(:, 8) = M_alpha_beta_deg(1:n,2);
+parametros(:, 9) = PID_deg(1:n,1);
+parametros(:,10) = PID_deg(1:n,2);
+parametros(:,11) = PID_deg(1:n,3);
+parametros(:,12) = pitch_error(1:n,1);
+parametros(:,13) = yaw_error(1:n,1);
+parametros(:,14) = pitch_error_int(1:n,1);
+parametros(:,15) = yaw_error_int(1:n,1);
+parametros(:,16) = pitch_error_dev(1:n,1);
+parametros(:,17) = yaw_error_dev(1:n,1);
+parametros(:,18) = TVA_cmd_deg(1:n,1);
+parametros(:,19) = TVA_cmd_deg(1:n,2);
+parametros(:,20) = Act_cmd_b_deg(1:n,1);
+parametros(:,21) = Act_cmd_b_deg(1:n,2);
+parametros(:,22) = TVA_rec_deg(1:n,1);
+parametros(:,23) = TVA_rec_deg(1:n,2);
+
+csvwrite('parametros_31_05_2021.csv',parametros);
+
+
+%% Clean up 
+% clear('Coef'); clear('x');     clear('y');   clear('z');     clear('ans');   clear('I_times_ang_acc');
+% clear('Ixx');  clear('Iyy');   clear('Izz'); clear('Ixx_p'); clear('Iyy_p'); clear('Izz_p');            clear('angles');
+% clear('D_NB'); clear('D_l');   clear('L_C'); clear('S');     clear('data');  clear('AoA_pitch');        clear('AoA_yaw');
+% clear('Nz_d'); clear('Nzl_S'); clear('R_e'); clear('R_l');   clear('R_lh');  clear('data_size');        clear('Exp_Omega_k_T');
+% clear('dt');   clear('f');     clear('fx');  clear('fy');    clear('fz');    clear('Fe_traj');          clear('liftoffcounter');
+% clear('i');    clear('le');    clear('T');   clear('pitch'); clear('yaw');   clear('roll');             clear('position');
+% clear('q0');   clear('q1');    clear('q2');  clear('q3');    clear('w_b');   clear('alt_traj');         clear('M_alpha');       
+% clear('k1');   clear('k2');    clear('k3');  clear('k4');    clear('dl');    clear('M_beta');           clear('data_100hz');
+% clear('Dref'); clear('Sref');  clear('Mach');clear('P');     clear('D');     clear('M_beta_deg');       clear('n');     
+% clear('ii');   clear('N');     clear('j');   clear('distance_ref');   clear('corr_angle_deg');
+% clear('');  clear('');
+% 
+% clear('DMARS_0');     clear('Sound_Velocity');      clear('distance');
+% clear('DMARS_u');     clear('Nozzle_eccentricity'); clear('Nozzle_misalignment');   
+% clear('DMARS_u_1');   clear('pitch_error');         clear('yaw_error');            
+% clear('DMARS_u_2');   clear('Speed_pitch_deg');     clear('Speed_yaw_deg');
+% clear('DMARS_u_3');   clear('pitch_error_dev(i+1)');clear('yaw_error_dev(i+1)');
+% clear('DMARS_y');     clear('pitch_error_int');     clear('yaw_error_int');
+% clear('DMARS_y_1');   clear('pitch_error_old');     clear('yaw_error_old');
+% clear('DMARS_y_2');   clear('pitch_desired_deg');   clear('yaw_desired_deg'); 
+% clear('XYZ');
