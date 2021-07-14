@@ -101,6 +101,7 @@ latd_ref = latd_ref_deg * pi/180;        % Trajectory geodetic latitude referenc
 lon_ref  =  lon_ref_deg * pi/180;        % Trajectory longitude reference                   [rad]
 
 %% Dados variantes de voo (LOGDATA)
+n = 8500;
 
 TVA_cmd     = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR NRS. [rad]    
 Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315º and  225º [rad]
@@ -169,8 +170,8 @@ lon_error   = zeros(n,1);
 e_1         = zeros(n,1);
 e_2         = zeros(n,1);
 
-delta_pitch =  0;
-delta_yaw = 0;
+delta_azi   = zeros(n,1);
+delta_ele   = zeros(n,1);
 
 ax_b        = zeros(n,1);
 ay_b        = zeros(n,1);
@@ -442,7 +443,9 @@ for i = 1:(n-1)
 
 %% acc_k : Normalized lateral & vertical accelerations (due to 1º of delta in attitude)
     q_aux = angle2quat(pitch_ref(i), yaw_ref(i), roll_ref(i), 'XYZ');
-    k_acc(i,:) = lateral_and_vertical_acc(q_aux, acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
+    
+%     k_acc(i,:) = lateral_and_vertical_acc(q_aux, acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
+    k_acc(i,:) = lateral_and_vertical_acc(q(i,:), acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
         Cnbeta(i), Cd(i), Pdin(i), AoA(i,:), Sref, M(i), M_p(i), W_b(i,:), CoG(i), le);
     
     
@@ -493,124 +496,130 @@ for i = 1:(n-1)
 %% GUIDANCE CONTROL
 
     liftoffcounter = i/100;     % the numbers indicate flight time in seconds
- 
-%     if( mod(i,10) == 1 )
-        latd_error = latd_ref(i+1) - latd(i+1);
-        lon_error = lon_ref(i+1) - lon(i+1);
 
-        % translate latd_error and lon_error to left_right_error and front_back_error
-        LAT_error = 6378137                * latd_error;            % [m]
-        LON_error = 6378137*cos(latd(i+1)) *  lon_error;            % [m]
+    latd_error = latd_ref(i+1) - latd(i+1);
+    lon_error = lon_ref(i+1) - lon(i+1);
 
-        POS = [LON_error, LAT_error, 0];    % [m]  ENU ref.
-        VEL = [-V(i+1,2), V(i+1,1), 0 ];    %footprint velocity. Axis direction:(+lon, +latd, up)
-        VEL_Z = V(i+1,3);
+    % translate latd_error and lon_error to left_right_error and front_back_error
+    LAT_error = 6378137                * latd_error;            % [m]
+    LON_error = 6378137*cos(latd(i+1)) *  lon_error;            % [m]
 
-        crox = cross(VEL/norm(VEL), POS/norm(POS) );
-        guin_error = asin(crox(3));                     % [rad] signal standart right-hand side rotation around +z-axis
-        % positive values for guin_error means that the rocket is at the
-        % current moment to the right side of the trajectory when seen from
-        % above, facing future positions
-        
-        % negative values for guin_error means that the rocket is at the
-        % current moment to the left side of the trajectory when seen from
-        % above, facing future positions
-        
+    POS = [LON_error, LAT_error, 0];    % [m]  ENU ref.
+    VEL = [-V(i+1,2), V(i+1,1), 0 ];    %footprint velocity. Axis direction:(+lon, +latd, up)
+    VEL_Z = V(i+1,3);
 
-%         azimuth_error
-%         elevation_error 
+    crox = cross(VEL/norm(VEL), POS/norm(POS) );
+    guin_error = asin(crox(3));                     % [rad] signal standart right-hand side rotation around +z-axis
+    % positive values for guin_error means that the rocket is at the
+    % current moment to the right side of the trajectory when seen from
+    % above, facing future positions
 
-        e_1(i+1) = norm(POS) * sin(guin_error);                      % sideways error in meters
-        e_2(i+1) = norm(POS) * cos(guin_error) * sign(dot(POS,VEL)) * sign(VEL_Z);% front-back error in meters
-        
+    % negative values for guin_error means that the rocket is at the
+    % current moment to the left side of the trajectory when seen from
+    % above, facing future positions
 
-%     if( mod(i,10) == 1 )
-%         %e_1 left_right_error
-%         %e_2 front_back_error
-%         if i == 1
-%             e_1_old = 0;
-%             e_2_old = 0;
-%         else
-%             e_1_old = e_1(i-10);
-%             e_2_old = e_2(i-10);
-%         end    
-%         e_1(i:i+9) = norm(POS) * sin(guin_error) * ones(10,1);              %sideways error in meters
-%         e_1_dev = ( e_1(i) - e_1_old ) / (10 * dt);
-%         e_1_int = e_1_int + e_1(i) * 10 * dt; 
-%         %positive values means the rocket should rotate positively around up-axis
-%         %to correct its trajectory
-%         %
-%         %negative values means the rocket should rotate negatively around up-axis
-%         %to correct its trajectory
-% 
-%         %front_back_error
-%         e_2(i:i+9) = norm(POS) * cos(guin_error) * sign(dot(POS,VEL)) * sign(VEL_Z);
-%         e_2_dev = ( e_2(i) - e_2_old ) / (10 * dt);
-%         e_2_int = e_2_int + e_2(i) * 10 * dt; 
-%         %Positive values means the rocket should decrease its elevation angle  
-%         %during an acendent flight (or increase its elevation angle in an decendent
-%         %flight) to correct its trajectory
-%         %
-%         %Negative values means the rocket should increase its elevation angle  
-%         %during an acendent flight (or decrease its elevation angle in an decendent
-%         %flight) to correct its trajectory
- 
-    if( mod(i,10) == 1 )
- 
-%         Gui_PID(i,1:3) =  15.6/norm(acc_b(i,:))  * [ 0.8e-3,  8.9e-6,  18e-3 ]; 
-% 
-%         guiP = Gui_PID(i,1);
-%         guiI = Gui_PID(i,2);
-%         guiD = Gui_PID(i,3);
-% 
-%         
-%         delta_azimuth(i:i+9,1) = (guiP * e_1(i) + guiI * e_1_int + guiD * e_1_dev) * ones(10,1);
-% 
-%         delta_elevation = 0; %e_2 stuff
-%         
-%         %---------------------------------------------------------------------- OK
-%         
-%         % This section computes the reference azimuth and reference elevation
-%         quat = angle2quat(pitch_ref(i+1), yaw_ref(i+1), 0, 'XYZ');
-%         q0 = quat(1);  % escalar component
-%         q1 = quat(2);  % ex
-%         q2 = quat(3);  % ey
-%         q3 = quat(4);  % ez
-%         ROT = [    1-2*q2^2-2*q3^2      2*(q1*q2+q0*q3)     2*(q1*q3-q0*q2);
-%                     2*(q1*q2-q0*q3)      1-2*q1^2-2*q3^2     2*(q2*q3+q0*q1);
-%                     2*(q1*q3+q0*q2)      2*(q2*q3-q0*q1)     1-2*q1^2-2*q2^2];
-%         rocket_dir = ROT' * [0; 0; 1];
-%         module = sqrt( rocket_dir(1)^2 + rocket_dir(2)^2 );
-%         
-%         azi_ref = atan2( -rocket_dir(2), rocket_dir(1) );
-%         ele_ref = atan2(  rocket_dir(3), module );
-%         
-%         
-%         %----------------------------------------------------------------------
-% 
-%         new_azi_ref = azi_ref - delta_azimuth(i,1);
-%         
-%         if ele_ref > 0
-%             new_ele_ref = ele_ref - delta_elevation;
-%         else
-%             new_ele_ref = ele_ref + delta_elevation;
-%         end
-%         
-%         new_q = angle2quat(-new_azi_ref, pi/2-new_ele_ref, 0, 'ZYZ');
-%         
-%         if( liftoffcounter < 15 || liftoffcounter > 50 )
-%             [new_pitch, new_yaw, ~] = quat2angle(new_q, 'XYZ');
-%             delta_pitch =  new_pitch - pitch_ref(i);
-%             delta_yaw = new_yaw - yaw_ref(i);
-%         else
-%             delta_pitch = 0;
-%             delta_yaw = 0;
-%         end
-% 
+    e_1(i+1) = norm(POS) * sin(guin_error);                      % sideways error in meters
+    e_2(i+1) = norm(POS) * cos(guin_error) * sign(dot(POS,VEL)) * sign(VEL_Z);% front-back error in meters
+
+    e_1_int = e_1_int + e_1(i+1) * dt; 
+    e_2_int = e_2_int + e_2(i+1) * dt; 
+
+    e_1_dev = ( e_1(i+1) - e_1(i) ) / dt;       %not used
+    e_2_dev = ( e_2(i+1) - e_2(2) ) / dt;       %not used
+
+    %gains in degrees
+    GUI_PID(i,1:3) =  0.1/norm(k_acc(i,1))  * [ 2,  0.1,  10 ];     %k_acc is almost the same for both axes
+    if(GUI_PID(i,3) > 20)
+        GUI_PID(i,1:3) = 2  * [ 2,  0.1,  10 ];
     end
-%     
-%     pitch_desired_deg = (pitch_ref(i) + delta_pitch)  * 180/pi;
-%     yaw_desired_deg = (yaw_ref(i) + delta_yaw) * 180/pi;
+ 
+    %e_1 left_right_error
+    %positive values means the rocket should rotate positively around up-axis
+    %to correct its trajectory
+    %negative values means the rocket should rotate negatively around up-axis
+    %to correct its trajectory
+
+    %e_2 front_back_error
+    %Positive values means the rocket should decrease its elevation angle  
+    %during an acendent flight (or increase its elevation angle in an decendent
+    %flight) to correct its trajectory
+    %Negative values means the rocket should increase its elevation angle  
+    %during an acendent flight (or decrease its elevation angle in an decendent
+    %flight) to correct its trajectory
+
+    %gains in degrees
+    GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 10,  1,  200 ] * 1e-3;     %k_acc is almost the same for both axes
+    if(GUI_PID(i,3) > 2)
+        GUI_PID(i,1:3) =  [ 0.1,  0.001,  2 ];
+    end
+
+%         Gui_PID(i,1:3) =  15.6/norm(acc_b(i,:))  * [ 0.8e-3,  8.9e-6,  18e-3 ]; 
+
+    guiP = GUI_PID(i,1);
+    guiI = GUI_PID(i,2);
+    guiD = GUI_PID(i,3);
+
+    %deltas in degrees
+    delta_azi(i) = (guiP * e_1(i+1) + guiI * e_1_int + guiD * e_1_dev);
+    delta_ele(i) = (guiP * e_2(i+1) + guiI * e_2_int + guiD * e_2_dev);
+
+    if(delta_azi(i) > 3)
+        delta_azi(i) = 3;
+    elseif(delta_azi(i) < -3)
+        delta_azi(i) = -3;
+    end
+
+    if(delta_ele(i) > 3)
+        delta_ele(i) = 3;
+    elseif(delta_ele(i) < -3)
+        delta_ele(i) = -3;
+    end
+ 
+    
+    
+    if( mod(i,10) == 1)
+        if( (liftoffcounter > 2 && liftoffcounter < 15) )
+            
+            for ii = 0:9
+                %---------------------------------------------------------------------- OK
+                % This section computes the reference azimuth and reference elevation
+                DCM = angle2dcm(pitch_ref(i+1+ii), yaw_ref(i+1+ii), roll_ref(i+1+ii), 'XYZ');
+
+                [p, y, r] = dcm2angle(DCM, 'ZYZ');
+
+                azi_ref = -p;
+                ele_ref = pi/2 - y;
+                til_ref = r;
+
+                %---------------------------------------------------------------------- OK
+
+                new_azi_ref = azi_ref - delta_azi(i);
+
+                if ele_ref > 0
+                    new_ele_ref = ele_ref - delta_ele(i);              %sign was inverted @TO DO: test it
+                else
+                    new_ele_ref = ele_ref + delta_ele(i);
+                end
+
+                DCM_new = angle2dcm( -new_azi_ref, pi/2-new_ele_ref, til_ref, 'ZYZ');
+
+                [p, y, r] = dcm2angle(DCM_new, 'XYZ');
+                new_pitch_ref_deg(i+1+ii) = p * 180/pi;
+                new_yaw_ref_deg(i+1+ii)   = y * 180/pi;
+                new_roll_ref_deg(i+1+ii)  = r * 180/pi;
+            end
+        else
+            for ii = 0:9
+                new_pitch_ref_deg(i+1+ii) = pitch_ref(i) * 180/pi;
+                new_yaw_ref_deg(i+1+ii)   = yaw_ref(i) * 180/pi;
+                new_roll_ref_deg(i+1+ii)  = roll_ref(i) * 180/pi;
+            end
+        end
+    end
+    pitch_ref_deg(i+1) = new_pitch_ref_deg(i+1);
+    yaw_ref_deg(i+1)   = new_pitch_ref_deg(i+1);
+    roll_ref_deg(i+1)  = new_pitch_ref_deg(i+1);
+     
     
 %% ATTITUDE CONTROL - @TO DO: Should be removed from this simulation!!   
     
@@ -632,7 +641,7 @@ for i = 1:(n-1)
        corr_angle_deg = 1;                                           
     elseif (liftoffcounter > 45 && (liftoffcounter <= 50))
        corr_angle_deg = 1 + (9/5) * (liftoffcounter - 45); 
-   elseif (liftoffcounter > 50 && (liftoffcounter <= 70))
+    elseif (liftoffcounter > 50 && (liftoffcounter <= 70))
        corr_angle_deg = 10;    
     elseif (liftoffcounter > 70 && (liftoffcounter <= 75))
        corr_angle_deg = 10 - 2 * (liftoffcounter - 70); 
