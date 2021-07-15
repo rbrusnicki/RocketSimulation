@@ -222,7 +222,7 @@ n=8201;
 % V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
 % V_wind(1:n,1:2) = vento_4(1:n,2:3); % Wind from files
 V_mod = 0; % [m/s]
-V_azi = -45; % [º]
+V_azi = 135; % [º]
 
 V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones(n,1)  zeros(n,1)];
 %V_wind = [zeros(n,1) 10*ones(n,1)  zeros(n,1)];
@@ -527,11 +527,6 @@ for i = 1:(n-1)
     e_1_dev = ( e_1(i+1) - e_1(i) ) / dt;       %not used
     e_2_dev = ( e_2(i+1) - e_2(2) ) / dt;       %not used
 
-    %gains in degrees
-    GUI_PID(i,1:3) =  0.1/norm(k_acc(i,1))  * [ 2,  0.1,  10 ];     %k_acc is almost the same for both axes
-    if(GUI_PID(i,3) > 20)
-        GUI_PID(i,1:3) = 2  * [ 2,  0.1,  10 ];
-    end
  
     %e_1 left_right_error
     %positive values means the rocket should rotate positively around up-axis
@@ -549,8 +544,8 @@ for i = 1:(n-1)
 
     %gains in degrees
     GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 10,  1,  200 ] * 1e-3;     %k_acc is almost the same for both axes
-    if(GUI_PID(i,3) > 2)
-        GUI_PID(i,1:3) =  [ 0.1,  0.001,  2 ];
+    if(GUI_PID(i,3) > 4)
+        GUI_PID(i,1:3) =  2*[ 0.1,  0.001,  2 ];
     end
 
 %         Gui_PID(i,1:3) =  15.6/norm(acc_b(i,:))  * [ 0.8e-3,  8.9e-6,  18e-3 ]; 
@@ -560,8 +555,8 @@ for i = 1:(n-1)
     guiD = GUI_PID(i,3);
 
     %deltas in degrees
-    delta_azi(i) = (guiP * e_1(i+1) + guiI * e_1_int + guiD * e_1_dev);
-    delta_ele(i) = 0;%(guiP * e_2(i+1) + guiI * e_2_int + guiD * e_2_dev);                  %TODO FIX ELEVATION CONTROL
+    delta_azi(i) = (guiP * e_1(i+1) + guiI * e_1_int + 0 * e_1_dev);
+    delta_ele(i) = (guiP * e_2(i+1) + guiI * e_2_int + 0 * e_2_dev);                  
 
     if(delta_azi(i) > 3)
         delta_azi(i) = 3;
@@ -575,9 +570,12 @@ for i = 1:(n-1)
         delta_ele(i) = -3;
     end
  
+    if i == 500
+        i=500;
+    end
     
     if( mod(i,10) == 1)
-        if( (liftoffcounter > 2 && liftoffcounter < 15) || liftoffcounter > 45)
+        if( (liftoffcounter > 5 && liftoffcounter < 15) || liftoffcounter > 45)
             
             for ii = 0:9
                 %---------------------------------------------------------------------- OK
@@ -613,6 +611,8 @@ for i = 1:(n-1)
                 new_yaw_ref_deg(i+1+ii)   = yaw_ref(i) * 180/pi;
                 new_roll_ref_deg(i+1+ii)  = roll_ref(i) * 180/pi;
             end
+            e_1_int = 0;
+            e_2_int = 0;
         end
     end
     pitch_ref_deg(i+1) = new_pitch_ref_deg(i+1);
