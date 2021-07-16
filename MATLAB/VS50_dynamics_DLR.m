@@ -35,13 +35,11 @@ Nozzle_eccentricity = 1e-3 * [ 0  0 ];       % Ecentricidade da tubeira [X, Y]  
 dl = 0.0  * pi/180;                         % Fins Misalignment                              [rad]
 
 % Control data
-
-% e_1_old = 0;
 e_1_int = 0;
-% e_2_old   = 0;
 e_2_int   = 0;
+e_3_int = 0;
 
-coor = zeros(8200,1);
+
 
 %% Leitura dos dados invariantes de voo
 time    = data_100hz(:,1);
@@ -101,7 +99,8 @@ latd_ref = latd_ref_deg * pi/180;        % Trajectory geodetic latitude referenc
 lon_ref  =  lon_ref_deg * pi/180;        % Trajectory longitude reference                   [rad]
 
 %% Dados variantes de voo (LOGDATA)
-n = 8500;
+n = 13101;
+
 
 TVA_cmd     = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR NRS. [rad]    
 Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315º and  225º [rad]
@@ -169,6 +168,7 @@ lon_error   = zeros(n,1);
 
 e_1         = zeros(n,1);
 e_2         = zeros(n,1);
+e_3         = zeros(n,1);
 
 delta_azi   = zeros(n,1);
 delta_ele   = zeros(n,1);
@@ -180,8 +180,9 @@ ax          = zeros(n,1);
 ay          = zeros(n,1);
 az          = zeros(n,1);
 
-TVA_rec     = zeros(n,2);
+coor = zeros(n,1);
 
+TVA_rec     = zeros(n,2);
 
 DMARS_data  = zeros(n,16);              % DMARS data sent in the protocol (output of the DMARS_plant)
                                         % [W_b(i,:), ang_acc_b(i,:), q(i,:), V(i,:), latd(i), lon(i), alt(i)];
@@ -218,10 +219,10 @@ q3 =  cang1.*cang2.*sang3 + sang1.*sang2.*cang3;
 q(1,:) = [q0 q1 q2 q3];  
 
 % Wind conditions ---------------------------------------------------------
-n=8201;
+% n=8201;
 % V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
 % V_wind(1:n,1:2) = vento_4(1:n,2:3); % Wind from files
-V_mod = 0; % [m/s]
+V_mod = 10; % [m/s]
 V_azi = 135; % [º]
 
 V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones(n,1)  zeros(n,1)];
@@ -230,9 +231,9 @@ V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones
 %%
 t_off = 700;
 aux_flag = 0;
-n=8201;
+% n=10001;
 
-for i = 1:(n-1)
+for i = 1:(n-1)     
     %% Pressão Dinâmica e Pressão Atmosférica local
     [Pdin(i), Patm(i), Temperature(i)] = Dynamic_Pressure( alt(i), V(i,:), V_wind(i,:) );
 %     [Pdin(i), Patm(i), Temperature(i)]
@@ -520,12 +521,15 @@ for i = 1:(n-1)
 
     e_1(i+1) = norm(POS) * sin(guin_error);                      % sideways error in meters
     e_2(i+1) = norm(POS) * cos(guin_error) * sign(dot(POS,VEL)) * sign(VEL_Z);% front-back error in meters
-
+    e_3(i+1) = alt_ref(i+1) - alt(i+1);
+        
     e_1_int = e_1_int + e_1(i+1) * dt; 
     e_2_int = e_2_int + e_2(i+1) * dt; 
+    e_3_int = e_3_int + e_3(i+1) * dt; 
 
     e_1_dev = ( e_1(i+1) - e_1(i) ) / dt;       %not used
-    e_2_dev = ( e_2(i+1) - e_2(2) ) / dt;       %not used
+    e_2_dev = ( e_2(i+1) - e_2(i) ) / dt;       %not used
+    e_3_dev = ( e_3(i+1) - e_3(i) ) / dt;       %not used
 
  
     %e_1 left_right_error
@@ -543,10 +547,14 @@ for i = 1:(n-1)
     %flight) to correct its trajectory
 
     %gains in degrees
-    GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 10,  1,  200 ] * 1e-3;     %k_acc is almost the same for both axes
-    if(GUI_PID(i,3) > 4)
-        GUI_PID(i,1:3) =  2*[ 0.1,  0.001,  2 ];
+    GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 41,  0.46,  582 ] * 1e-3;
+    if(GUI_PID(i,3) > 5.82)
+            GUI_PID(i,1:3) =  [ 0.41,  0.0046,  5.82 ];
     end
+%     GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 10,  1,  200 ] * 1e-3;     %k_acc is almost the same for both axes
+%     if(GUI_PID(i,3) > 4)
+%         GUI_PID(i,1:3) =  2*[ 0.1,  0.001,  2 ];
+%     end
 
 %         Gui_PID(i,1:3) =  15.6/norm(acc_b(i,:))  * [ 0.8e-3,  8.9e-6,  18e-3 ]; 
 
@@ -555,8 +563,8 @@ for i = 1:(n-1)
     guiD = GUI_PID(i,3);
 
     %deltas in degrees
-    delta_azi(i) = (guiP * e_1(i+1) + guiI * e_1_int + 0 * e_1_dev);
-    delta_ele(i) = (guiP * e_2(i+1) + guiI * e_2_int + 0 * e_2_dev);                  
+    delta_azi(i) = (guiP * e_1(i+1) + guiI * e_1_int +  e_1_dev);
+    delta_ele(i) = (guiP * e_2(i+1) + guiI * e_2_int +  e_2_dev);                  
 
     if(delta_azi(i) > 3)
         delta_azi(i) = 3;
@@ -570,12 +578,9 @@ for i = 1:(n-1)
         delta_ele(i) = -3;
     end
  
-    if i == 500
-        i=500;
-    end
     
     if( mod(i,10) == 1)
-        if( (liftoffcounter > 5 && liftoffcounter < 15) || liftoffcounter > 45)
+        if( (liftoffcounter > 5 && liftoffcounter < 15) || (liftoffcounter > 45 && liftoffcounter < 75))
             
             for ii = 0:9
                 %---------------------------------------------------------------------- OK
@@ -593,7 +598,7 @@ for i = 1:(n-1)
                 new_azi_ref = azi_ref - delta_azi(i) * pi/180;
 
                 if ele_ref > 0
-                    new_ele_ref = ele_ref - delta_ele(i)* pi/180;              %sign was inverted @TO DO: test it
+                    new_ele_ref = ele_ref - delta_ele(i)* pi/180;             
                 else
                     new_ele_ref = ele_ref + delta_ele(i)* pi/180;
                 end
@@ -784,19 +789,21 @@ TVA_rec_deg = TVA_rec * 180/pi;
 %% Guidance PLOTS
 
 figure;
-subplot(2,1,1);
+% subplot(2,1,1);
 plot(time(1:n),e_1(1:n));
 hold;
 plot(time(1:n),e_2(1:n));
-legend('Sideways error (e_1)','Front-back error (e_2)');
-title('Sideways & Front-back errors');
+plot(time(1:n),e_3(1:n));
+legend('Sideways error (e_1)','Front-back error (e_2)','Up-down error (e_3)');
+title('Position errors');
 
-subplot(2,1,2);
-plot(time(1:n),latd_deg(1:n)-latd_ref_deg(1:n));
-hold;
-plot(time(1:n),lon_deg(1:n)-lon_ref_deg(1:n));
-legend('latd error','lon error');
-title('Latitude & Longitude errors');
+% subplot(2,1,2);
+% plot(time(1:n),latd_deg(1:n)-latd_ref_deg(1:n));
+% hold;
+% plot(time(1:n),lon_deg(1:n)-lon_ref_deg(1:n));
+% plot(time(1:n),alt(1:n)-alt_ref(1:n));
+% legend('latd error','lon error','alt error');
+% title('Latitude, Longitude & Altitude errors');
 
 %plot(azimuth_error);
 % plot(elevation_error);
@@ -1043,34 +1050,34 @@ ylim([low-1 high+1]);
 
 %% Dados para a ACE-V
 
-n = 8200;
-parametros = zeros(n,23);
-
-parametros(:, 1) = time(1:n,1);
-parametros(:, 2) = pitch_ref_deg(1:n,1);
-parametros(:, 3) = yaw_ref_deg(1:n,1);
-parametros(:, 4) = angles_deg(1:n,1);
-parametros(:, 5) = angles_deg(1:n,2);
-parametros(:, 6) = angles_deg(1:n,3);
-parametros(:, 7) = M_alpha_beta_deg(1:n,1);
-parametros(:, 8) = M_alpha_beta_deg(1:n,2);
-parametros(:, 9) = PID_deg(1:n,1);
-parametros(:,10) = PID_deg(1:n,2);
-parametros(:,11) = PID_deg(1:n,3);
-parametros(:,12) = pitch_error(1:n,1);
-parametros(:,13) = yaw_error(1:n,1);
-parametros(:,14) = pitch_error_int(1:n,1);
-parametros(:,15) = yaw_error_int(1:n,1);
-parametros(:,16) = pitch_error_dev(1:n,1);
-parametros(:,17) = yaw_error_dev(1:n,1);
-parametros(:,18) = TVA_cmd_deg(1:n,1);
-parametros(:,19) = TVA_cmd_deg(1:n,2);
-parametros(:,20) = Act_cmd_b_deg(1:n,1);
-parametros(:,21) = Act_cmd_b_deg(1:n,2);
-parametros(:,22) = TVA_rec_deg(1:n,1);
-parametros(:,23) = TVA_rec_deg(1:n,2);
-
-csvwrite('parametros_31_05_2021.csv',parametros);
+% n = 8200;
+% parametros = zeros(n,23);
+% 
+% parametros(:, 1) = time(1:n,1);
+% parametros(:, 2) = pitch_ref_deg(1:n,1);
+% parametros(:, 3) = yaw_ref_deg(1:n,1);
+% parametros(:, 4) = angles_deg(1:n,1);
+% parametros(:, 5) = angles_deg(1:n,2);
+% parametros(:, 6) = angles_deg(1:n,3);
+% parametros(:, 7) = M_alpha_beta_deg(1:n,1);
+% parametros(:, 8) = M_alpha_beta_deg(1:n,2);
+% parametros(:, 9) = PID_deg(1:n,1);
+% parametros(:,10) = PID_deg(1:n,2);
+% parametros(:,11) = PID_deg(1:n,3);
+% parametros(:,12) = pitch_error(1:n,1);
+% parametros(:,13) = yaw_error(1:n,1);
+% parametros(:,14) = pitch_error_int(1:n,1);
+% parametros(:,15) = yaw_error_int(1:n,1);
+% parametros(:,16) = pitch_error_dev(1:n,1);
+% parametros(:,17) = yaw_error_dev(1:n,1);
+% parametros(:,18) = TVA_cmd_deg(1:n,1);
+% parametros(:,19) = TVA_cmd_deg(1:n,2);
+% parametros(:,20) = Act_cmd_b_deg(1:n,1);
+% parametros(:,21) = Act_cmd_b_deg(1:n,2);
+% parametros(:,22) = TVA_rec_deg(1:n,1);
+% parametros(:,23) = TVA_rec_deg(1:n,2);
+% 
+% csvwrite('parametros_31_05_2021.csv',parametros);
 
 
 %% Clean up 
