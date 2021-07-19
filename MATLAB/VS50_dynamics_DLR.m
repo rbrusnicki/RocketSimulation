@@ -223,7 +223,7 @@ q(1,:) = [q0 q1 q2 q3];
 % V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
 % V_wind(1:n,1:2) = vento_4(1:n,2:3); % Wind from files
 V_mod = 10; % [m/s]
-V_azi = 135; % [º]
+V_azi = 22.5; % [º]
 
 V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones(n,1)  zeros(n,1)];
 %V_wind = [zeros(n,1) 10*ones(n,1)  zeros(n,1)];
@@ -564,23 +564,40 @@ for i = 1:(n-1)
 
     %deltas in degrees
     delta_azi(i) = (guiP * e_1(i+1) + guiI * e_1_int +  e_1_dev);
-    delta_ele(i) = (guiP * e_2(i+1) + guiI * e_2_int +  e_2_dev);                  
+    delta_ele(i) = (guiP * e_2(i+1) + guiI * e_2_int +  e_2_dev);  
+%     delta_ele(i) = -(guiP * e_3(i+1) + guiI * e_3_int +  e_3_dev); 
 
-    if(delta_azi(i) > 3)
-        delta_azi(i) = 3;
-    elseif(delta_azi(i) < -3)
-        delta_azi(i) = -3;
+    
+    corr_angle_deg = 3;
+    if ( liftoffcounter <= 15)               
+        corr_angle_deg = 3;          % maximum guidance correction allowed
+    elseif (liftoffcounter > 45 && (liftoffcounter <= 50))
+        corr_angle_deg = 3;
+    elseif (liftoffcounter > 50 && (liftoffcounter <= 55))
+        corr_angle_deg = 6;
+    elseif (liftoffcounter > 60 && liftoffcounter <= 65)
+       corr_angle_deg = 10;
+   elseif (liftoffcounter > 65 && liftoffcounter <= 70)
+       corr_angle_deg = 5;
+    elseif (liftoffcounter > 70 )
+       corr_angle_deg = 3;
+    end   
+    
+    if(delta_azi(i) >= corr_angle_deg)
+        delta_azi(i) = corr_angle_deg;
+    elseif(delta_azi(i) < -corr_angle_deg)
+        delta_azi(i) = -corr_angle_deg;
     end
 
-    if(delta_ele(i) > 3)
-        delta_ele(i) = 3;
-    elseif(delta_ele(i) < -3)
-        delta_ele(i) = -3;
+    if(delta_ele(i) >= corr_angle_deg)
+        delta_ele(i) = corr_angle_deg;
+    elseif(delta_ele(i) < -corr_angle_deg)
+        delta_ele(i) = -corr_angle_deg;
     end
  
     
     if( mod(i,10) == 1)
-        if( (liftoffcounter > 5 && liftoffcounter < 15) || (liftoffcounter > 45 && liftoffcounter < 75))
+        if((liftoffcounter > 5 && liftoffcounter < 15) || (liftoffcounter > 45 && liftoffcounter < 75))
             
             for ii = 0:9
                 %---------------------------------------------------------------------- OK
@@ -879,6 +896,8 @@ xlabel('time [s]');
 ylabel('Altitude [km]');
 legend('reference','executed');
 grid on;
+frame_h = get(handle(gcf),'JavaFrame');
+set(frame_h,'Maximized',1);
 
 %% Latd & Lon 
 
@@ -933,6 +952,9 @@ grid on;
 
 %% Attitude and others
 figure();
+pause(0.00001);
+frame_h = get(handle(gcf),'JavaFrame');
+set(frame_h,'Maximized',1);
 subplot(2,1,1);
 plot(time(1:n,1), angles_deg(1:n,1), 'b')
 hold
