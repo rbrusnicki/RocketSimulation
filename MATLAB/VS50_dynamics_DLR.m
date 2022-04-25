@@ -6,6 +6,7 @@ set(0,'DefaultAxesXGrid','on')
 set(0,'DefaultAxesYGrid','on')
 set(0,'DefaultLineLineWidth', 2);
 set(0,'defaultFigurePosition', [10 200 1600 800])
+set(0,'defaultAxesFontSize',20)
 colordef white
 grid minor
 close;
@@ -106,7 +107,7 @@ TVA_cmd     = zeros(n,2);               % TVA nozzle pitch and yaw angles comman
 Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315º and  225º [rad]
 Act_b       = zeros(n,2);               % Nozzle angle for actuators at 315º and at 225º       [rad]
 latd        = zeros(n,1);               % Geodetic Latitude of the Vehicle during flight       [rad]
-alt         = zeros(n,1);               % Geodetic Altitude of the Vehicle during flight       [rad]
+alt         = zeros(n,1);               % Geodetic Altitude of the Vehicle during flight       [m]
 lon         = zeros(n,1);               % Geodetic Longitude of the Vehicle during flight      [rad]
 q           = zeros(n,4);               % Quaternion of attitude                               [-]
 angles      = zeros(n,3);               % Euler angles in DLR Standard: 1-2-3                  [rad]
@@ -222,7 +223,7 @@ q(1,:) = [q0 q1 q2 q3];
 % n=8201;
 % V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
 % V_wind(1:n,1:2) = vento_4(1:n,2:3); % Wind from files
-V_mod = 10; % [m/s]
+V_mod = 0; % [m/s]
 V_azi = 22.5; % [º]
 
 V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones(n,1)  zeros(n,1)];
@@ -231,7 +232,7 @@ V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones
 %%
 t_off = 700;
 aux_flag = 0;
-% n=10001;
+n = 8250;
 
 for i = 1:(n-1)     
     %% Pressão Dinâmica e Pressão Atmosférica local
@@ -637,9 +638,12 @@ for i = 1:(n-1)
             e_2_int = 0;
         end
     end
-    pitch_ref_deg(i+1) = new_pitch_ref_deg(i+1);
-    yaw_ref_deg(i+1)   = new_yaw_ref_deg(i+1);
-    roll_ref_deg(i+1)  = new_roll_ref_deg(i+1);
+    
+    %To turn guidance on/off, comment/uncoment the next 3 lines:
+    
+%     pitch_ref_deg(i+1) = new_pitch_ref_deg(i+1);
+%     yaw_ref_deg(i+1)   = new_yaw_ref_deg(i+1);
+%     roll_ref_deg(i+1)  = new_roll_ref_deg(i+1);
      
     
 %% ATTITUDE CONTROL - @TO DO: Should be removed from this simulation!!   
@@ -722,6 +726,16 @@ for i = 1:(n-1)
     P = PID_deg(i,1);
     I = PID_deg(i,2);
     D = PID_deg(i,3);
+    
+%     P = 0.10; 
+%     I = 0.05; 
+%     D = 0.15; 
+    
+    % TESTE DO PID ROBUSTO - TESE DE MESTRADO ################################################################ TESE DE MESTRADO
+    P = 0.3189; 
+    I = 1.3164; 
+    D = 1.6008; 
+
 
     % TVA_cmd in degrees here
     TVA_cmd(i+1,1) = P * pitch_error(i+1) + I * pitch_error_int(i+1) + D * pitch_error_dev(i+1);
@@ -805,14 +819,23 @@ TVA_rec_deg = TVA_rec * 180/pi;
 
 %% Guidance PLOTS
 
+% Errors
 figure;
 % subplot(2,1,1);
 plot(time(1:n),e_1(1:n));
 hold;
 plot(time(1:n),e_2(1:n));
 plot(time(1:n),e_3(1:n));
-legend('Sideways error (e_1)','Front-back error (e_2)','Up-down error (e_3)');
+legend('Sideways error (e_1)','Front-back error (e_2)','Up-down error (e_3)',...
+        'Location','best');
 title('Position errors');
+xlabel('Time [s]')
+ylabel('Errors [m]')
+frame_h = get(handle(gcf),'JavaFrame');
+set(frame_h,'Maximized',1);
+grid on;
+grid minor;
+
 
 % subplot(2,1,2);
 % plot(time(1:n),latd_deg(1:n)-latd_ref_deg(1:n));
@@ -826,35 +849,48 @@ title('Position errors');
 % plot(elevation_error);
 
 
-
+%% Normalized aceleration
 figure;
 plot(time(1:n), k_acc(1:n,:));
 hold;
 legend('up_{acc}', 'lat_{acc}');
 title('Normalized Accelerations');
+xlabel('Time [s]')
+ylabel('Acc [m/s^2]')
+frame_h = get(handle(gcf),'JavaFrame');
+set(frame_h,'Maximized',1);
+grid on;
+grid minor;
 
 
 %% Footprint versus Altitude - SCATTER
-% figure()
-% subplot(1,2,1);
-% scatter(lon(1:n), latd(1:n), 3, alt(1:n), 'filled')
-% title('Footprint X Altitude');
-% xlabel('Lon [º]');
-% ylabel('Latd [º]');
-% colorbar;
+figure()
+subplot(1,2,1);
+scatter(lon(1:n), latd(1:n), 3, 0.001*alt(1:n), 'filled')
+hold on
+plot(lon(1),latd(1),'rx');
+title('Footprint X Altitude');
+xlabel('Lon [rad]');
+ylabel('Latd [rad]');
+cb = colorbar;
+cb.Label.String = 'Altitude (km)';
+axis('equal');
+grid on;
+grid minor
+xlim([lon(1)-0.0002 lon(n)+0.0002])
+
+% Rough trajectory plane - SCATTER
+subplot(1,2,2);
+distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2);
+scatter(distance(1:n), alt(1:n)/1e3, 3, 1:length(alt(1:n)), 'filled');
+title('Trajectory plane over time');
+xlabel('Distance from launch-pad [km]');
+ylabel('Altitude [km]');
 % axis('equal');
-% grid on;
-% 
-% % Rough trajectory plane - SCATTER
-% subplot(1,2,2);
-% distance = 6378.137*sqrt((lon-lon(1)).^2+(latd-latd(1)).^2) * pi/180;
-% scatter(distance, alt/1e3, 3, 1:length(alt), 'filled');
-% title('Trajectory plane over time');
-% xlabel('Distance from launch-pad [km]');
-% ylabel('Altitude [km]');
-% colorbar;
-% axis('equal');
-% grid on;
+grid on;
+grid minor
+frame_h = get(handle(gcf),'JavaFrame');
+set(frame_h,'Maximized',1);
 
 %% Footprint versus Altitude - PLOTS
 figure();
@@ -862,14 +898,18 @@ subplot(1,2,1);
 plot(lon_ref_deg(1:n), latd_ref_deg(1:n), 'b', 'LineWidth', 1)
 hold on;
 plot(lon_deg(1:n), latd_deg(1:n), 'r', 'LineWidth', 1)
-% plot(lon_deg(1:n_iip), latd_deg(1:n_iip), 'r', 'LineWidth', 1)
-% plot(lon_deg(n_iip), latd_deg(n_iip), 'kx')
+plot(lon_deg(1), latd_deg(1),'rx');
+
+%     plot(lon_deg(1:n_iip), latd_deg(1:n_iip), 'r', 'LineWidth', 1)     %impact point
+%     plot(lon_deg(n_iip), latd_deg(n_iip), 'kx')
 title('Footprint');
 xlabel('Lon [º]');
 ylabel('Latd [º]');
 axis('equal');
 grid on;
-legend('reference','executed');
+grid minor
+legend('reference','executed','Launchpad', 'Location','East');
+xlim([lon_deg(1)-0.01 lon_deg(n)+0.01])
 
 % Rough trajectory plane
 % subplot(1,2,2);
@@ -894,10 +934,11 @@ plot(time(1:n,1), alt(1:n,1)/1e3,'r', 'LineWidth', 1);
 title('Altitude over time');
 xlabel('time [s]');
 ylabel('Altitude [km]');
-legend('reference','executed');
+legend('reference','executed', 'Location','east');
 grid on;
 frame_h = get(handle(gcf),'JavaFrame');
 set(frame_h,'Maximized',1);
+grid minor
 
 %% Latd & Lon 
 
@@ -964,6 +1005,9 @@ legend('Pitch', 'Speed-pitch', 'Pitch-Nom', 'Location','east')
 low = min( [ min(angles_deg(1:n,1)), min(pitch_ref_deg(1:n,1)) ] );
 high = max(max(angles_deg(1:n,1)),max(pitch_ref_deg(1:n,1)));
 ylim([low-1 high+1]);
+ylabel("Pitch-axis [°]")
+title("Attitude");
+grid minor
 
 subplot(2,1,2);
 plot(time(1:n,1), angles_deg(1:n,2), 'Color',[0.0, 0.66, 0.0])
@@ -974,6 +1018,11 @@ legend('Yaw', 'Speed-yaw', 'Yaw-Nom', 'Location','east')
 low = min(min(angles_deg(1:n,2)),min(yaw_ref_deg(1:n,1)));
 high = max(max(angles_deg(1:n,2)),max(yaw_ref_deg(1:n,1)));
 ylim([low-1 high+1]);
+ylabel("Yaw-axis [°]")
+xlabel("Time (s)")
+grid minor
+
+
 
 % figure()
 % plot( AoA_deg(:,1), 'b')
@@ -1069,6 +1118,175 @@ ylim([low-1 high+1]);
 % xlabel('Time [0.01s]')
 % ylabel('Moment [N.m]')
 % title('Roll Moments')
+
+%% Malfa versus Mbeta over time
+set(0,'defaultAxesFontSize',20);
+set(0,'defaultFigurePosition', [10 200 800 800])
+figure()
+scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 3, time(1:n), 'filled')
+title('M_{\alpha} versus M_{\beta} over time');
+xlabel('M_{\alpha} [º/s^2]');
+ylabel('M_{\beta}[º/s^2]');
+c = colorbar;
+c.Label.String = 'time (s)';
+% axis('equal');
+grid on;
+
+ %% variable Malfa versus variable Mbeta over time
+ 
+% M_alpha_deg_plus  = 1.1 * M_alpha_beta_deg(1:n,1);
+% M_alpha_deg_minus = 0.9 * M_alpha_beta_deg(1:n,1);
+% 
+% M_beta_deg_plus  = 1.2 * M_alpha_beta_deg(1:n,2);
+% M_beta_deg_minus = 0.8 * M_alpha_beta_deg(1:n,2);
+% 
+% 
+% set(0,'defaultAxesFontSize',20);
+% set(0,'defaultFigurePosition', [10 200 800 800])
+% figure()
+% 
+% scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 'filled')
+% hold on
+% scatter(M_alpha_deg_plus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_plus,  M_beta_deg_minus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_minus, 'filled');
+% 
+% title('M_{\alpha} versus M_{\beta} over time');
+% xlabel('M_{\alpha} [º/s^2]');
+% ylabel('M_{\beta}[º/s^2]');
+% 
+% % axis('equal');
+% 
+% legend('1,0.M_{\alpha} x 1,0.M_{\beta}', ...
+%        '1,1.M_{\alpha} x 1,2.M_{\beta}', ...
+%        '0,9.M_{\alpha} x 1,2.M_{\beta}', ...
+%        '1,1.M_{\alpha} x 0,8.M_{\beta}', ...
+%        '0,9.M_{\alpha} x 0,8.M_{\beta}')
+% grid on;
+% 
+% 
+% %% variable Malfa versus variable Mbeta over time with polytope
+% 
+% M_alpha_deg_plus  = 1.1 * M_alpha_beta_deg(1:n,1);
+% M_alpha_deg_minus = 0.9 * M_alpha_beta_deg(1:n,1);
+% 
+% M_beta_deg_plus  = 1.2 * M_alpha_beta_deg(1:n,2);
+% M_beta_deg_minus = 0.8 * M_alpha_beta_deg(1:n,2);
+% 
+% 
+% set(0,'defaultAxesFontSize',20);
+% set(0,'defaultFigurePosition', [10 200 800 800])
+% figure()
+% 
+% scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 'filled')
+% hold on
+% scatter(M_alpha_deg_plus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_plus,  M_beta_deg_minus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_minus, 'filled');
+% 
+% fill([0.5,  5.5,  5.5,  3.5,   1, -19, -19], ...
+%      [-1, 20, 34, 39, 40,  23,  14.5], 'blue','FaceAlpha',0.1);
+% 
+% 
+% 
+% title('M_{\alpha} versus M_{\beta} over time');
+% xlabel('M_{\alpha} [º/s^2]');
+% ylabel('M_{\beta}[º/s^2]');
+% 
+% % axis('equal');
+% 
+% % legend('1,0.M_{\alpha} x 1,0.M_{\beta}', ...
+% %        '1,1.M_{\alpha} x 1,2.M_{\beta}', ...
+% %        '0,9.M_{\alpha} x 1,2.M_{\beta}', ...
+% %        '1,1.M_{\alpha} x 0,8.M_{\beta}', ...
+% %        '0,9.M_{\alpha} x 0,8.M_{\beta}', ...
+% %        'Location', 'northwest')
+% grid on;
+% 
+% %% variable Malfa versus variable Mbeta over time with polytope
+% 
+% M_alpha_deg_plus  = 1.1 * M_alpha_beta_deg(1:n,1);
+% M_alpha_deg_minus = 0.9 * M_alpha_beta_deg(1:n,1);
+% 
+% M_beta_deg_plus  = 1.2 * M_alpha_beta_deg(1:n,2);
+% M_beta_deg_minus = 0.8 * M_alpha_beta_deg(1:n,2);
+% 
+% 
+% set(0,'defaultAxesFontSize',20);
+% set(0,'defaultFigurePosition', [10 200 800 800])
+% figure();
+% 
+% 
+% subplot(2,2,1);
+% scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 'filled')
+% hold on
+% scatter(M_alpha_deg_plus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_plus,  M_beta_deg_minus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_minus, 'filled');
+% % % Vertical
+% fill([-0.5,  0.5, 0.5, -0.5], ...
+%      [-0.5, -0.5, 24,  24], 'blue','FaceAlpha',0.2);
+% 
+% title({'                                                      M_{\alpha} versus M_{\beta} over time',' '});
+%  
+% subplot(2,2,2);
+% scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 'filled')
+% hold on
+% scatter(M_alpha_deg_plus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_plus,  M_beta_deg_minus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_minus, 'filled');
+% % % Horizontal
+% fill([ 0.5, 0.5, -19, -19], ...
+%      [ 14, 23.5, 23.5,  14.5], 'blue','FaceAlpha',0.2);
+%  
+% subplot(2,2,3);
+% scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 'filled')
+% hold on
+% scatter(M_alpha_deg_plus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_plus,  M_beta_deg_minus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_minus, 'filled');
+% % % Diagonal
+% fill([ 0.5, 0.5, -19, -19], ...
+%      [ 18, 29, 23.5,  14], 'blue','FaceAlpha',0.2);
+% 
+% xlabel('                                               M_{\alpha} [º/s^2]');
+% ylabel('                                               M_{\beta} [º/s^2]');
+% 
+% subplot(2,2,4);
+% scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 'filled')
+% hold on
+% scatter(M_alpha_deg_plus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_plus, 'filled');
+% scatter(M_alpha_deg_plus,  M_beta_deg_minus, 'filled');
+% scatter(M_alpha_deg_minus, M_beta_deg_minus, 'filled');
+% % % Loop
+% fill([-0.5, 5.5,  5.5,  0], ...
+%      [ 17.5,   20, 38, 40], 'blue','FaceAlpha',0.2);
+% 
+% % scatter(M_alpha_beta_deg(30:2100,1), M_alpha_beta_deg(30:2100,2), 'filled', 'k');
+% % scatter(M_alpha_deg_plus(30:2100) , M_beta_deg_plus(30:2100), 'filled', 'k');
+% % scatter(M_alpha_deg_minus(30:2100), M_beta_deg_plus(30:2100), 'filled', 'k');
+% % scatter(M_alpha_deg_plus(30:2100) , M_beta_deg_minus(30:2100), 'filled', 'k');
+% % scatter(M_alpha_deg_minus(30:2100), M_beta_deg_minus(30:2100), 'filled', 'k');
+% 
+% 
+% 
+% 
+% % axis('equal');
+% 
+% % legend('1,0.M_{\alpha} x 1,0.M_{\beta}', ...
+% %        '1,1.M_{\alpha} x 1,2.M_{\beta}', ...
+% %        '0,9.M_{\alpha} x 1,2.M_{\beta}', ...
+% %        '1,1.M_{\alpha} x 0,8.M_{\beta}', ...
+% %        '0,9.M_{\alpha} x 0,8.M_{\beta}', ...
+% %        'Location', 'northwest')
+% grid on;
+% 
 
 %% Dados para a ACE-V
 
