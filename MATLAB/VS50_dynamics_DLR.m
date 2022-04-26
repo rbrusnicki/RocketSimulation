@@ -1,5 +1,5 @@
 % function [lon, latd, alt] = VS50_dynamics_DLR()
-cd C:\Users\rbrus\Documents\RocketSimulation\MATLAB
+% cd C:\Users\rbrus\Documents\RocketSimulation\MATLAB
 clc;
 clear all;
 close all;
@@ -33,9 +33,10 @@ Sref = pi * (Dref/2)^2;          % Vehicle reference area                       
 
 
 % Disturbances
-Nozzle_misalignment = pi/180 * [ 0  0 ];     % Desalinhamento da tubeira [X-pitch, Y-yaw]      [rad]
-Nozzle_eccentricity = 1e-3 * [ 0  0 ];       % Ecentricidade da tubeira [X, Y]                 [m]
-dl = 0.0  * pi/180;                         % Fins Misalignment                              [rad]
+Nozzle_misalignment = pi/180 * [ 0  0.1 ];     % Desalinhamento da tubeira [X-pitch, Y-yaw]      [rad]
+Nozzle_eccentricity = 1e-3 * [ 0  1 ];       % Ecentricidade da tubeira [X, Y]                 [m]
+dl = 0.1  * pi/180;                         % Fins Misalignment                              [rad]
+
 
 % Control data
 e_1_int = 0;
@@ -225,8 +226,8 @@ q(1,:) = [q0 q1 q2 q3];
 % n=8201;
 % V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
 % V_wind(1:n,1:2) = vento_4(1:n,2:3); % Wind from files
-V_mod = 0; % [m/s]
-V_azi = 22.5; % [º]
+V_mod = 10; % [m/s]
+V_azi = -22.5; % [º]
 
 V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones(n,1)  zeros(n,1)];
 %V_wind = [zeros(n,1) 10*ones(n,1)  zeros(n,1)];
@@ -665,7 +666,7 @@ for i = 1:(n-1)
     elseif (liftoffcounter > 20 && (liftoffcounter <= 25))
         corr_angle_deg = 5 - (4/5) * (liftoffcounter - 20);
     elseif (liftoffcounter > 25 && (liftoffcounter <= 45))
-       corr_angle_deg = 1;                                           
+       corr_angle_deg = 1;                                     
     elseif (liftoffcounter > 45 && (liftoffcounter <= 50))
        corr_angle_deg = 1 + (9/5) * (liftoffcounter - 45); 
     elseif (liftoffcounter > 50 && (liftoffcounter <= 70))
@@ -728,15 +729,18 @@ for i = 1:(n-1)
     P = PID_deg(i,1);
     I = PID_deg(i,2);
     D = PID_deg(i,3);
+
+%     -36.2143  -27.1979   -8.4593    % gamma = 0.5
+%      -0.0152   -8.6767   -4.4036    % gamma = 0.00005
     
-%     P = 0.10; 
-%     I = 0.05; 
-%     D = 0.15; 
+%     P = 0.0152; 
+%     I = 8.6767; 
+%     D = 4.4036; 
     
     % TESTE DO PID ROBUSTO - TESE DE MESTRADO ################################################################ TESE DE MESTRADO
-    I = -scheduled_gains_PID(i,1);
-    P = -scheduled_gains_PID(i,2);
-    D = -scheduled_gains_PID(i,3);
+   I = -scheduled_gains_PID(i,1);
+   P = -scheduled_gains_PID(i,2);
+   D = -scheduled_gains_PID(i,3);
 
     % TVA_cmd in degrees here
     TVA_cmd(i+1,1) = P * pitch_error(i+1) + I * pitch_error_int(i+1) + D * pitch_error_dev(i+1);
@@ -745,8 +749,8 @@ for i = 1:(n-1)
     if ( liftoffcounter < 15 || ( liftoffcounter > 30 && liftoffcounter < 85 )  )
         if (M_beta(i) > 0)
             % for some time try to compensate the impact of malpha as an acceleraton offset
-            TVA_cmd(i+1,1) = TVA_cmd(i+1,1) + AoA_comp_deg(i,1) * M_alpha(i)/M_beta(i);% + ax(i)/M_beta(i);
-            TVA_cmd(i+1,2) = TVA_cmd(i+1,2) + AoA_comp_deg(i,2) * M_alpha(i)/M_beta(i);% + ay(i)/M_beta(i);
+            TVA_cmd(i+1,1) = TVA_cmd(i+1,1) + AoA_comp_deg(i,1) * M_alpha(i)/M_beta(i) + ax(i)/M_beta(i);
+            TVA_cmd(i+1,2) = TVA_cmd(i+1,2) + AoA_comp_deg(i,2) * M_alpha(i)/M_beta(i) + ay(i)/M_beta(i);
         else
             TVA_cmd(i+1,2) = 0;
             TVA_cmd(i+1,1) = 0;
