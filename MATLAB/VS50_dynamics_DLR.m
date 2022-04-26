@@ -1,4 +1,5 @@
 % function [lon, latd, alt] = VS50_dynamics_DLR()
+cd C:\Users\rbrus\Documents\RocketSimulation-master\RocketSimulation-master\MATLAB
 clc;
 clear all;
 close all;
@@ -6,7 +7,6 @@ set(0,'DefaultAxesXGrid','on')
 set(0,'DefaultAxesYGrid','on')
 set(0,'DefaultLineLineWidth', 2);
 set(0,'defaultFigurePosition', [10 200 1600 800])
-set(0,'defaultAxesFontSize',20)
 colordef white
 grid minor
 close;
