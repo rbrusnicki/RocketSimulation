@@ -1,5 +1,5 @@
 % function [lon, latd, alt] = VS50_dynamics_DLR()
-cd C:\Users\rbrus\Documents\RocketSimulation-master\RocketSimulation-master\MATLAB
+cd C:\Users\rbrus\Documents\RocketSimulation\MATLAB
 clc;
 clear all;
 close all;
@@ -18,6 +18,8 @@ load('2019.10.14_result6DOF_VS50_S44inert_alcantara_massaDLR_alfa1_100hz.mat');
 % load('vento_1.mat');
 % load('vento_2.mat');
 load('vento_4.mat');
+
+load('scheduled_gains_PID.mat');
 
 % Constant values
 
@@ -732,10 +734,9 @@ for i = 1:(n-1)
 %     D = 0.15; 
     
     % TESTE DO PID ROBUSTO - TESE DE MESTRADO ################################################################ TESE DE MESTRADO
-    P = 0.3189; 
-    I = 1.3164; 
-    D = 1.6008; 
-
+    I = -scheduled_gains_PID(i,1);
+    P = -scheduled_gains_PID(i,2);
+    D = -scheduled_gains_PID(i,3);
 
     % TVA_cmd in degrees here
     TVA_cmd(i+1,1) = P * pitch_error(i+1) + I * pitch_error_int(i+1) + D * pitch_error_dev(i+1);
