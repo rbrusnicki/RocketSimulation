@@ -1,12 +1,21 @@
 
-load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\V.mat");
-load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\q.mat");
-load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Pdin.mat");
-load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\M_alpha_beta_deg.mat");
-load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Ixx.mat");
-load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Cnr.mat");
-load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Cmq.mat");
-load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Clp.mat");
+% load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\V.mat");
+% load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\q.mat");
+% load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Pdin.mat");
+% load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\M_alpha_beta_deg.mat");
+% load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Ixx.mat");
+% load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Cnr.mat");
+% load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Cmq.mat");
+% load("C:\Users\Brusnicki\Desktop\vs50_contol_system_data_base_plots\Clp.mat");
+
+load("vs50_contol_system_data_base_plots\V.mat");
+load("vs50_contol_system_data_base_plots\q.mat");
+load("vs50_contol_system_data_base_plots\Pdin.mat");
+load("vs50_contol_system_data_base_plots\M_alpha_beta_deg.mat");
+load("vs50_contol_system_data_base_plots\Ixx.mat");
+load("vs50_contol_system_data_base_plots\Cnr.mat");
+load("vs50_contol_system_data_base_plots\Cmq.mat");
+load("vs50_contol_system_data_base_plots\Clp.mat");
 
 expo = [-2:0.001:2];
 w = 10.^expo;

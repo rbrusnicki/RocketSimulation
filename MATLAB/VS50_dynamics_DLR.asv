@@ -11,7 +11,7 @@ colordef white
 grid minor
 close;
 
-%% Dados do veÃ­culo
+%% Dados do veículo
 
 % load('2018.12.04_VS50_alcantara.mat');
 load('2019.10.14_result6DOF_VS50_S44inert_alcantara_massaDLR_alfa1_100hz.mat');
@@ -34,7 +34,7 @@ Sref = pi * (Dref/2)^2;          % Vehicle reference area                       
 
 % Disturbances
 Nozzle_misalignment = pi/180 * [ 0  0.1 ];     % Desalinhamento da tubeira [X-pitch, Y-yaw]      [rad]
-Nozzle_eccentricity = 1e-3 * [ 0  1 ];       % Ecentricidade da tubeira [X, Y]                 [m]
+Nozzle_eccentricity = 1e-3 * [ 0  10 ];       % Ecentricidade da tubeira [X, Y]                 [m]
 dl = 0.1  * pi/180;                         % Fins Misalignment                              [rad]
 
 
@@ -68,8 +68,8 @@ Ixx_p   = data_100hz(:,21);              % d(Ixx)/dt                            
 Iyy_p   = data_100hz(:,20);              % d(Iyy)/dt                                        [Kg.m^2/s]
 Izz_p   = data_100hz(:,19);              % d(Izz)/dt                                        [Kg.m^2/s]
 
-latd_ref_deg= data_100hz(:,43);          % Trajectory geodetic latitude reference           [Âº]
-lon_ref_deg = data_100hz(:,41);          % Trajectory longitude reference                   [Âº]
+latd_ref_deg= data_100hz(:,43);          % Trajectory geodetic latitude reference           [º]
+lon_ref_deg = data_100hz(:,41);          % Trajectory longitude reference                   [º]
 alt_ref = data_100hz(:,38) * 1e3;        % Trajectory altitude reference                    [m]
 
 lla_smooth = [latd_ref_deg, lon_ref_deg, alt_ref];                 % Correction necessary for the current input used
@@ -84,8 +84,8 @@ alt_ref = lla_smooth(:,3);
 clear('lla_smooth');
 
 mach_number   = data_100hz(:,39);        % Velocity in Mach number for nominal trajectory   [-] 
-pitch_ref_deg = data_100hz(:,52);        % DLR Pitch reference                              [Âº]
-yaw_ref_deg   = data_100hz(:,53);        % DLR Yaw reference                                [Âº]
+pitch_ref_deg = data_100hz(:,52);        % DLR Pitch reference                              [º]
+yaw_ref_deg   = data_100hz(:,53);        % DLR Yaw reference                                [º]
 
 % pitch_ref_deg(1:253,1) = ones(253,1);
 % pitch_ref_deg   = zeros(8201,1);
@@ -94,7 +94,7 @@ yaw_ref_deg   = data_100hz(:,53);        % DLR Yaw reference                    
 % yaw_ref_deg(1310:8201,1) = yaw_ref_deg(1310:8201,1) + ones(8201-1310+1,1);
 % pitch_ref_deg(4501:8201,1) = 0.4*ones(3701,1);
 
-roll_ref_deg  = data_100hz(:,54);        % DLR Roll reference                               [Âº]
+roll_ref_deg  = data_100hz(:,54);        % DLR Roll reference                               [º]
 pitch_ref = pitch_ref_deg * pi/180;      % DLR Pitch reference                              [rad]
 yaw_ref   = yaw_ref_deg * pi/180;        % DLR Yaw reference                                [rad]
 roll_ref  = roll_ref_deg * pi/180;       % DLR Roll reference                               [rad]
@@ -107,14 +107,14 @@ n = 13101;
 
 
 TVA_cmd     = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR NRS. [rad]    
-Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315Âº and  225Âº [rad]
-Act_b       = zeros(n,2);               % Nozzle angle for actuators at 315Âº and at 225Âº       [rad]
+Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315º and  225º [rad]
+Act_b       = zeros(n,2);               % Nozzle angle for actuators at 315º and at 225º       [rad]
 latd        = zeros(n,1);               % Geodetic Latitude of the Vehicle during flight       [rad]
 alt         = zeros(n,1);               % Geodetic Altitude of the Vehicle during flight       [m]
 lon         = zeros(n,1);               % Geodetic Longitude of the Vehicle during flight      [rad]
 q           = zeros(n,4);               % Quaternion of attitude                               [-]
 angles      = zeros(n,3);               % Euler angles in DLR Standard: 1-2-3                  [rad]
-angles_deg  = zeros(n,3);               % Euler angles in DLR Standard: 1-2-3                  [Âº]
+angles_deg  = zeros(n,3);               % Euler angles in DLR Standard: 1-2-3                  [º]
 acc         = zeros(n,3);               % Aceleration vector in DLR Navigation Ref. Sys.       [m/s^2]
 acc_b       = zeros(n,3);               % Aceleration vector in DLR Navigation Ref. Sys.       [m/s^2]
 ang_acc     = zeros(n,3);               % Angular Aceleration vector in DLR Nav. Ref. Sys.     [rad/s^2]
@@ -133,9 +133,9 @@ FCo_b       = zeros(n,3);               % Coriolis Force in DLR Body Reference S
 W           = zeros(n,3);               % Angular Velocity in DLR Navigation Reference System  [rad/s]
 W_b         = zeros(n,3);               % Angular Velocity in DLR Body Reference System        [rad/s]
 AoA         = zeros(n,2);               % Angle of Attack [XZ plane, YZ plane] of DLR_NRS      [rad]
-AoA_deg     = zeros(n,2);               % Angle of Attack [XZ plane, YZ plane] of DLR_NRS      [Âº]
+AoA_deg     = zeros(n,2);               % Angle of Attack [XZ plane, YZ plane] of DLR_NRS      [º]
 AoA_comp    = zeros(n,2);               % Computed AoA [XZ plane, YZ plane] of DLR_NRS         [rad]
-AoA_comp_deg= zeros(n,2);               % Computed AoA [XZ plane, YZ plane] of DLR_NRS         [Âº]
+AoA_comp_deg= zeros(n,2);               % Computed AoA [XZ plane, YZ plane] of DLR_NRS         [º]
 Speed_Att   = zeros(n,2);               % Euler angles of the Speed Vector Attitude (XYZ)      [rad]
 Speed_Att_comp = zeros(n,2);            % Computed Speed_Att considering no wind  [pitch, yaw] [rad]
 MCo         = zeros(n,3);               % Coriolis Moment in DLR Navigation Reference System   [N.m]
@@ -226,11 +226,15 @@ q(1,:) = [q0 q1 q2 q3];
 % n=8201;
 % V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
 % V_wind(1:n,1:2) = vento_4(1:n,2:3); % Wind from files
-V_mod = 10; % [m/s]
-V_azi = -22.5; % [Âº]
+V_mod = 0; % [m/s]
+V_azi = -22.5; % [º]
 
 V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones(n,1)  zeros(n,1)];
 %V_wind = [zeros(n,1) 10*ones(n,1)  zeros(n,1)];
+
+% Malfa and Mbeta disturbances gains
+Gain_a = 1.2;
+Gain_b = 0.8;
 
 %%
 t_off = 700;
@@ -238,13 +242,13 @@ aux_flag = 0;
 n = 8250;
 
 for i = 1:(n-1)     
-    %% PressÃ£o DinÃ¢mica e PressÃ£o AtmosfÃ©rica local
+    %% Pressão Dinâmica e Pressão Atmosférica local
     [Pdin(i), Patm(i), Temperature(i)] = Dynamic_Pressure( alt(i), V(i,:), V_wind(i,:) );
 %     [Pdin(i), Patm(i), Temperature(i)]
     %% Direct Cossine Matrix
     D_NB = DCM_NRS_to_BRS( q(i,:) );
 %     D_NB
-    %% Real Angles of Attack no Triedo de NavegaÃ§Ã£o do DLR
+    %% Real Angles of Attack no Triedo de Navegação do DLR
     [AoA(i,:), Speed_Att(i,:)] =  Angle_Of_Attack_in_DLR_NRS( V(i,:), V_wind(i,:), q(i,:));
     AoA_deg(i,:) = AoA(i,:) * 180/pi;
 %     aoa = AoA_deg(i,:)
@@ -288,10 +292,10 @@ for i = 1:(n-1)
         ii = ii+1;
     end
     
-    Cld(i) = data_100hz(ii, 7);
-    Clp(i) = data_100hz(ii, 6);
-    Cmq(i) = data_100hz(ii, 8);
-    Cnr(i) = data_100hz(ii, 9);
+    Cld(i) = Gain_a * data_100hz(ii, 7);
+    Clp(i) = Gain_a * data_100hz(ii, 6);
+    Cmq(i) = Gain_a * data_100hz(ii, 8);
+    Cnr(i) = Gain_a * data_100hz(ii, 9);
     
     Coef = diag([ Cmq(i,:), Cnr(i,:), Clp(i,:)]);
     
@@ -300,7 +304,7 @@ for i = 1:(n-1)
     %% Thrust Force 
     
     % In DLR Body Reference System
-    FE_b(i,:) = Thrust_Force_in_DLR_BRS(Fe(i)-Patm(i)*Nzl_S , Act_b(i,:), Nozzle_misalignment);
+    FE_b(i,:) = Thrust_Force_in_DLR_BRS(Gain_b * Fe(i)-Patm(i)*Nzl_S , Act_b(i,:), Nozzle_misalignment);
     
     if i*dt > t_off 
         FE_b(i,:) = 0;
@@ -323,15 +327,15 @@ for i = 1:(n-1)
     % In DLR Body Reference System
     FG_b(i,:) = (D_NB * FG(i,:)')';
 
-    %% ForÃ§a AerodinÃ¢mica 
+    %% Força Aerodinâmica 
     
     % In DLR Navigation Reference System
-    FA(i,:) = Aerodynamic_Force_in_DLR_NRS(q(i,:), Cnalfa(i), Cnbeta(i), Cd(i), Pdin(i), AoA(i,:), Sref);
+    FA(i,:) = Aerodynamic_Force_in_DLR_NRS(q(i,:), Gain_a * Cnalfa(i), Gain_a * Cnbeta(i), Gain_a * Cd(i), Pdin(i), AoA(i,:), Sref);
 
     % In DLR Body Reference System
     FA_b(i,:) = (D_NB * FA(i,:)')';
     
-    %% ForÃ§a de Coriolis 
+    %% Força de Coriolis 
     
     % In DLR Navigation Reference System
     FCo(i,:) = Coriolis_Force_in_DLR_NRS(D_NB, M_p(i), W_b(i,:), CoG(i), le);
@@ -367,7 +371,7 @@ for i = 1:(n-1)
     
     %% Aerodynamic Damping Moment
     
-    % No triedo de NavegaÃ§Ã£o do DLR
+    % No triedo de Navegação do DLR
     MA_d(i,:) =  Aerodynamic_Damping_Moment( D_NB, W_b(i,:), Coef, Pdin(i,:), V(i,:), V_wind(i,:) );
 
     % No triedo do Corpo do DLR
@@ -415,7 +419,7 @@ for i = 1:(n-1)
     ay_b(i) = W_b(i,3) * W_b(i,1) * ( Izz(i) - Ixx(i) ) / Iyy(i);
     az_b(i) = W_b(i,1) * W_b(i,2) * ( Ixx(i) - Iyy(i) ) / Izz(i);
     
-    dead_time = 0.041;
+    dead_time = 10*0.041;
     roll = angles(i,3) + dead_time * W_b(i,3);
     
     ax(i) = ax_b(i) * cos(roll) - ay_b(i) * sin(roll);
@@ -446,12 +450,12 @@ for i = 1:(n-1)
     %% M_beta
     M_beta(i) = norm(FE(i,:)) * (le - CoG(i)) * (-1 * pi / 180) / Ixx(i);
 
-%% acc_k : Normalized lateral & vertical accelerations (due to 1Âº of delta in attitude)
+%% acc_k : Normalized lateral & vertical accelerations (due to 1º of delta in attitude)
     q_aux = angle2quat(pitch_ref(i), yaw_ref(i), roll_ref(i), 'XYZ');
     
 %     k_acc(i,:) = lateral_and_vertical_acc(q_aux, acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
-    k_acc(i,:) = lateral_and_vertical_acc(q(i,:), acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
-        Cnbeta(i), Cd(i), Pdin(i), AoA(i,:), Sref, M(i), M_p(i), W_b(i,:), CoG(i), le);
+    k_acc(i,:) = lateral_and_vertical_acc(q(i,:), acc(i,:), i, dt, FE_b(i,:), FG(i,:), Gain_a * Cnalfa(i), ...
+        Gain_a * Cnbeta(i), Gain_a * Cd(i), Pdin(i), AoA(i,:), Sref, M(i), M_p(i), W_b(i,:), CoG(i), le);
     
     
 %% GAINS - @TO DO: Should be removed from this simulation!!
@@ -651,7 +655,7 @@ for i = 1:(n-1)
     
 %% ATTITUDE CONTROL - @TO DO: Should be removed from this simulation!!   
     
-    % Computed Angles of Attack no Triedo de NavegaÃ§Ã£o do DLR
+    % Computed Angles of Attack no Triedo de Navegação do DLR
     [AoA_comp(i+1,:), Speed_Att_comp(i+1,:)] =  Angle_Of_Attack_in_DLR_NRS( V(i+1,:), [0 0 0], q(i+1,:));
     AoA_comp_deg(i+1,:) = AoA_comp(i+1,:) * 180/pi;
         
@@ -666,16 +670,13 @@ for i = 1:(n-1)
     elseif (liftoffcounter > 20 && (liftoffcounter <= 25))
         corr_angle_deg = 5 - (4/5) * (liftoffcounter - 20);
     elseif (liftoffcounter > 25 && (liftoffcounter <= 45))
-       corr_angle_deg = 1;                                     
-    elseif (liftoffcounter > 55 && (liftoffcounter <= 60))
-       corr_angle_deg = 1 + (9/5) * (liftoffcounter - 55); 
-    elseif (liftoffcounter > 60 && (liftoffcounter <= 70))
-%     elseif (liftoffcounter > 45 && (liftoffcounter <= 50))
-%        corr_angle_deg = 1 + (9/5) * (liftoffcounter - 45); 
-%     elseif (liftoffcounter > 50 && (liftoffcounter <= 70))
+       corr_angle_deg = 3;                                     
+    elseif (liftoffcounter > 45 && (liftoffcounter <= 50))
+       corr_angle_deg = 1 + (9/5) * (liftoffcounter - 45); 
+    elseif (liftoffcounter > 50 && (liftoffcounter <= 60))  % 70
        corr_angle_deg = 10;    
-    elseif (liftoffcounter > 70 && (liftoffcounter <= 75))
-       corr_angle_deg = 10 - 2 * (liftoffcounter - 70); 
+    elseif (liftoffcounter > 60 && (liftoffcounter <= 70))  % 70 - 75
+       corr_angle_deg = 10 - 1 * (liftoffcounter - 60);     % 10 - 2 * (...-70);
     else
        corr_angle_deg = 0;
     end    
@@ -752,8 +753,8 @@ for i = 1:(n-1)
     if ( liftoffcounter < 15 || ( liftoffcounter > 30 && liftoffcounter < 85 )  )
         if (M_beta(i) > 0)
             % for some time try to compensate the impact of malpha as an acceleraton offset
-            TVA_cmd(i+1,1) = TVA_cmd(i+1,1) + AoA_comp_deg(i,1) * M_alpha(i)/M_beta(i);% + ax(i)/M_beta(i);
-            TVA_cmd(i+1,2) = TVA_cmd(i+1,2) + AoA_comp_deg(i,2) * M_alpha(i)/M_beta(i);% + ay(i)/M_beta(i);
+            TVA_cmd(i+1,1) = TVA_cmd(i+1,1) + AoA_comp_deg(i,1) * M_alpha(i)/M_beta(i) ;%+ ax(i)/M_beta(i);
+            TVA_cmd(i+1,2) = TVA_cmd(i+1,2) + AoA_comp_deg(i,2) * M_alpha(i)/M_beta(i) ;%+ ay(i)/M_beta(i);
         else
             TVA_cmd(i+1,2) = 0;
             TVA_cmd(i+1,1) = 0;
@@ -774,8 +775,8 @@ for i = 1:(n-1)
     
 %% DMARS PROTOCOL
     
-      %No protocolo real, V Ã© passado na seguinte ordem: [Veast, Vnorth, Vup]
-      %Aqui, a ordem de V Ã© [Vnorth, Veast, Vup]
+      %No protocolo real, V é passado na seguinte ordem: [Veast, Vnorth, Vup]
+      %Aqui, a ordem de V é [Vnorth, Veast, Vup]
     
     DMARS_u = [W_b(i,:), ang_acc_b(i,:), q(i,:), V(i,:), 180/pi*latd(i), 180/pi*lon(i), alt(i)];
     DMARS_0 = [W_b(1,:), ang_acc_b(1,:), q(1,:), V(1,:), 180/pi*latd(1), 180/pi*lon(1), alt(1)];
@@ -911,8 +912,8 @@ plot(lon_deg(1), latd_deg(1),'rx');
 %     plot(lon_deg(1:n_iip), latd_deg(1:n_iip), 'r', 'LineWidth', 1)     %impact point
 %     plot(lon_deg(n_iip), latd_deg(n_iip), 'kx')
 title('Footprint');
-xlabel('Lon [Âº]');
-ylabel('Latd [Âº]');
+xlabel('Lon [º]');
+ylabel('Latd [º]');
 axis('equal');
 grid on;
 grid minor
@@ -955,7 +956,7 @@ grid minor
 % plot(time(1:n,1),latd_deg(1:n)-latd_deg(1))
 % title('Delta Latitude');
 % xlabel('Time [s]');
-% ylabel('Latd [Âº]');
+% ylabel('Latd [º]');
 % % ylim([-2.32 -2.28])
 % grid on;
 % 
@@ -963,7 +964,7 @@ grid minor
 % plot(time(1:n,1),lon_deg(1:n)-lon_deg(1));
 % title('Delta Longitude');
 % xlabel('time [s]');
-% ylabel('Lon [Âº]');
+% ylabel('Lon [º]');
 % % ylim([-44.37 -44.33])
 % grid on;
 
@@ -1013,7 +1014,7 @@ legend('Pitch', 'Speed-pitch', 'Pitch-Nom', 'Location','east')
 low = min( [ min(angles_deg(1:n,1)), min(pitch_ref_deg(1:n,1)) ] );
 high = max(max(angles_deg(1:n,1)),max(pitch_ref_deg(1:n,1)));
 ylim([low-1 high+1]);
-ylabel("Pitch-axis [Â°]")
+ylabel("Pitch-axis [°]")
 title("Attitude");
 grid minor
 
@@ -1026,12 +1027,22 @@ legend('Yaw', 'Speed-yaw', 'Yaw-Nom', 'Location','east')
 low = min(min(angles_deg(1:n,2)),min(yaw_ref_deg(1:n,1)));
 high = max(max(angles_deg(1:n,2)),max(yaw_ref_deg(1:n,1)));
 ylim([low-1 high+1]);
-ylabel("Yaw-axis [Â°]")
+ylabel("Yaw-axis [°]")
 xlabel("Time (s)")
 grid minor
 
+figure()
+plot(TVA_cmd);
+hold on;
+plot(ax);
+plot(ay);
+xlim([3000 6000]);
+ylim([-0.02 0.02]);
+legend;
+plot(TVA_cmd());
 
 
+% 
 % figure()
 % plot( AoA_deg(:,1), 'b')
 % hold
@@ -1046,7 +1057,7 @@ grid minor
 % title('Angular rates in Body Reference System');
 % legend('pitch-rate','yaw-rate','roll-rate');
 % xlabel('Time [0.01s]')
-% ylabel('Rate [Âº/s]')
+% ylabel('Rate [º/s]')
 
 % figure()
 % plot(MFA)
@@ -1128,17 +1139,17 @@ grid minor
 % title('Roll Moments')
 
 %% Malfa versus Mbeta over time
-set(0,'defaultAxesFontSize',20);
-set(0,'defaultFigurePosition', [10 200 800 800])
-figure()
-scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 3, time(1:n), 'filled')
-title('M_{\alpha} versus M_{\beta} over time');
-xlabel('M_{\alpha} [Âº/s^2]');
-ylabel('M_{\beta}[Âº/s^2]');
-c = colorbar;
-c.Label.String = 'time (s)';
-% axis('equal');
-grid on;
+% set(0,'defaultAxesFontSize',20);
+% set(0,'defaultFigurePosition', [10 200 800 800])
+% figure()
+% scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 3, time(1:n), 'filled')
+% title('M_{\alpha} versus M_{\beta} over time');
+% xlabel('M_{\alpha} [º/s^2]');
+% ylabel('M_{\beta}[º/s^2]');
+% c = colorbar;
+% c.Label.String = 'time (s)';
+% % axis('equal');
+% grid on;
 
  %% variable Malfa versus variable Mbeta over time
  
@@ -1161,8 +1172,8 @@ grid on;
 % scatter(M_alpha_deg_minus, M_beta_deg_minus, 'filled');
 % 
 % title('M_{\alpha} versus M_{\beta} over time');
-% xlabel('M_{\alpha} [Âº/s^2]');
-% ylabel('M_{\beta}[Âº/s^2]');
+% xlabel('M_{\alpha} [º/s^2]');
+% ylabel('M_{\beta}[º/s^2]');
 % 
 % % axis('equal');
 % 
@@ -1200,8 +1211,8 @@ grid on;
 % 
 % 
 % title('M_{\alpha} versus M_{\beta} over time');
-% xlabel('M_{\alpha} [Âº/s^2]');
-% ylabel('M_{\beta}[Âº/s^2]');
+% xlabel('M_{\alpha} [º/s^2]');
+% ylabel('M_{\beta}[º/s^2]');
 % 
 % % axis('equal');
 % 
@@ -1262,8 +1273,8 @@ grid on;
 % fill([ 0.5, 0.5, -19, -19], ...
 %      [ 18, 29, 23.5,  14], 'blue','FaceAlpha',0.2);
 % 
-% xlabel('                                               M_{\alpha} [Âº/s^2]');
-% ylabel('                                               M_{\beta} [Âº/s^2]');
+% xlabel('                                               M_{\alpha} [º/s^2]');
+% ylabel('                                               M_{\beta} [º/s^2]');
 % 
 % subplot(2,2,4);
 % scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 'filled')

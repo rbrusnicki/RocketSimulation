@@ -33,14 +33,14 @@ Sref = pi * (Dref/2)^2;          % Vehicle reference area                       
 
 
 % Disturbances
-Nozzle_misalignment = pi/180 * [ 0  0.1 ];     % Desalinhamento da tubeira [X-pitch, Y-yaw]      [rad]
-Nozzle_eccentricity = 1e-3 * [ 0  1 ];       % Ecentricidade da tubeira [X, Y]                 [m]
-dl = 0.1  * pi/180;                         % Fins Misalignment                              [rad]
+Nozzle_misalignment = pi/180 * [ 0  0.0 ];    % Desalinhamento da tubeira [X-pitch, Y-yaw]      [rad]
+Nozzle_eccentricity = 1e-3 * [ 0  0 ];      % Ecentricidade da tubeira [X, Y]                 [m]
+dl = 0.00  * pi/180;                         % Fins Misalignment                              [rad]
 
 
 % Control data
 e_1_int = 0;
-e_2_int   = 0;
+e_2_int = 0;
 e_3_int = 0;
 
 
@@ -226,11 +226,15 @@ q(1,:) = [q0 q1 q2 q3];
 % n=8201;
 % V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
 % V_wind(1:n,1:2) = vento_4(1:n,2:3); % Wind from files
-V_mod = 10; % [m/s]
+V_mod = 0; % [m/s]
 V_azi = -22.5; % [º]
 
 V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones(n,1)  zeros(n,1)];
 %V_wind = [zeros(n,1) 10*ones(n,1)  zeros(n,1)];
+
+% Malfa and Mbeta disturbances gains
+Gain_a = 1.0;
+Gain_b = 1.0;
 
 %%
 t_off = 700;
@@ -288,10 +292,10 @@ for i = 1:(n-1)
         ii = ii+1;
     end
     
-    Cld(i) = data_100hz(ii, 7);
-    Clp(i) = data_100hz(ii, 6);
-    Cmq(i) = data_100hz(ii, 8);
-    Cnr(i) = data_100hz(ii, 9);
+    Cld(i) = Gain_a * data_100hz(ii, 7);
+    Clp(i) = Gain_a * data_100hz(ii, 6);
+    Cmq(i) = Gain_a * data_100hz(ii, 8);
+    Cnr(i) = Gain_a * data_100hz(ii, 9);
     
     Coef = diag([ Cmq(i,:), Cnr(i,:), Clp(i,:)]);
     
@@ -300,7 +304,7 @@ for i = 1:(n-1)
     %% Thrust Force 
     
     % In DLR Body Reference System
-    FE_b(i,:) = Thrust_Force_in_DLR_BRS(Fe(i)-Patm(i)*Nzl_S , Act_b(i,:), Nozzle_misalignment);
+    FE_b(i,:) = Thrust_Force_in_DLR_BRS(Gain_b * Fe(i)-Patm(i)*Nzl_S , Act_b(i,:), Nozzle_misalignment);
     
     if i*dt > t_off 
         FE_b(i,:) = 0;
@@ -326,7 +330,7 @@ for i = 1:(n-1)
     %% Força Aerodinâmica 
     
     % In DLR Navigation Reference System
-    FA(i,:) = Aerodynamic_Force_in_DLR_NRS(q(i,:), Cnalfa(i), Cnbeta(i), Cd(i), Pdin(i), AoA(i,:), Sref);
+    FA(i,:) = Aerodynamic_Force_in_DLR_NRS(q(i,:), Gain_a * Cnalfa(i), Gain_a * Cnbeta(i), Gain_a * Cd(i), Pdin(i), AoA(i,:), Sref);
 
     % In DLR Body Reference System
     FA_b(i,:) = (D_NB * FA(i,:)')';
@@ -415,7 +419,7 @@ for i = 1:(n-1)
     ay_b(i) = W_b(i,3) * W_b(i,1) * ( Izz(i) - Ixx(i) ) / Iyy(i);
     az_b(i) = W_b(i,1) * W_b(i,2) * ( Ixx(i) - Iyy(i) ) / Izz(i);
     
-    dead_time = 0.041;
+    dead_time = 1*0.041;
     roll = angles(i,3) + dead_time * W_b(i,3);
     
     ax(i) = ax_b(i) * cos(roll) - ay_b(i) * sin(roll);
@@ -450,8 +454,8 @@ for i = 1:(n-1)
     q_aux = angle2quat(pitch_ref(i), yaw_ref(i), roll_ref(i), 'XYZ');
     
 %     k_acc(i,:) = lateral_and_vertical_acc(q_aux, acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
-    k_acc(i,:) = lateral_and_vertical_acc(q(i,:), acc(i,:), i, dt, FE_b(i,:), FG(i,:), Cnalfa(i), ...
-        Cnbeta(i), Cd(i), Pdin(i), AoA(i,:), Sref, M(i), M_p(i), W_b(i,:), CoG(i), le);
+    k_acc(i,:) = lateral_and_vertical_acc(q(i,:), acc(i,:), i, dt, FE_b(i,:), FG(i,:), Gain_a * Cnalfa(i), ...
+        Gain_a * Cnbeta(i), Gain_a * Cd(i), Pdin(i), AoA(i,:), Sref, M(i), M_p(i), W_b(i,:), CoG(i), le);
     
     
 %% GAINS - @TO DO: Should be removed from this simulation!!
@@ -664,15 +668,15 @@ for i = 1:(n-1)
     elseif (liftoffcounter > 15 && (liftoffcounter <= 20))
         corr_angle_deg = 5;
     elseif (liftoffcounter > 20 && (liftoffcounter <= 25))
-        corr_angle_deg = 5 - (4/5) * (liftoffcounter - 20);
+        corr_angle_deg = 5 - (2/5) * (liftoffcounter - 20);
     elseif (liftoffcounter > 25 && (liftoffcounter <= 45))
-       corr_angle_deg = 1;                                     
+       corr_angle_deg = 3;                                     
     elseif (liftoffcounter > 45 && (liftoffcounter <= 50))
-       corr_angle_deg = 1 + (9/5) * (liftoffcounter - 45); 
-    elseif (liftoffcounter > 50 && (liftoffcounter <= 70))
+       corr_angle_deg = 3 + (7/5) * (liftoffcounter - 45); 
+    elseif (liftoffcounter > 50 && (liftoffcounter <= 60))  % 70
        corr_angle_deg = 10;    
-    elseif (liftoffcounter > 70 && (liftoffcounter <= 75))
-       corr_angle_deg = 10 - 2 * (liftoffcounter - 70); 
+    elseif (liftoffcounter > 60 && (liftoffcounter <= 70))  % 70 - 75
+       corr_angle_deg = 10 - 1 * (liftoffcounter - 60);     % 10 - 2 * (...-70);
     else
        corr_angle_deg = 0;
     end    
@@ -738,15 +742,15 @@ for i = 1:(n-1)
 %     D = 4.4036; 
     
     % TESTE DO PID ROBUSTO - TESE DE MESTRADO ################################################################ TESE DE MESTRADO
-   I = -scheduled_gains_PID(i,1);
-   P = -scheduled_gains_PID(i,2);
-   D = -scheduled_gains_PID(i,3);
+%    I = -scheduled_gains_PID(i,1);
+%    P = -scheduled_gains_PID(i,2);
+%    D = -scheduled_gains_PID(i,3);
 
     % TVA_cmd in degrees here
     TVA_cmd(i+1,1) = P * pitch_error(i+1) + I * pitch_error_int(i+1) + D * pitch_error_dev(i+1);
     TVA_cmd(i+1,2) = P *   yaw_error(i+1) + I *   yaw_error_int(i+1) + D *   yaw_error_dev(i+1);
 
-    if ( liftoffcounter < 15 || ( liftoffcounter > 30 && liftoffcounter < 85 )  )
+    if (  liftoffcounter < 15 || ( liftoffcounter > 30 && liftoffcounter < 85 )  )
         if (M_beta(i) > 0)
             % for some time try to compensate the impact of malpha as an acceleraton offset
             TVA_cmd(i+1,1) = TVA_cmd(i+1,1) + AoA_comp_deg(i,1) * M_alpha(i)/M_beta(i) + ax(i)/M_beta(i);
@@ -1027,8 +1031,19 @@ ylabel("Yaw-axis [°]")
 xlabel("Time (s)")
 grid minor
 
+figure()
+plot(TVA_cmd);
+hold on;
+plot(ax./M_beta);
+plot(ay./M_beta);
+xlim([3000 6000]);
+ylim([-0.02 0.02]);
+legend;
+plot(TVA_cmd(:,1)+ax./M_beta);
+plot(TVA_cmd(:,2)+ay./M_beta);
 
 
+% 
 % figure()
 % plot( AoA_deg(:,1), 'b')
 % hold
@@ -1125,17 +1140,17 @@ grid minor
 % title('Roll Moments')
 
 %% Malfa versus Mbeta over time
-set(0,'defaultAxesFontSize',20);
-set(0,'defaultFigurePosition', [10 200 800 800])
-figure()
-scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 3, time(1:n), 'filled')
-title('M_{\alpha} versus M_{\beta} over time');
-xlabel('M_{\alpha} [º/s^2]');
-ylabel('M_{\beta}[º/s^2]');
-c = colorbar;
-c.Label.String = 'time (s)';
-% axis('equal');
-grid on;
+% set(0,'defaultAxesFontSize',20);
+% set(0,'defaultFigurePosition', [10 200 800 800])
+% figure()
+% scatter(M_alpha_beta_deg(1:n,1), M_alpha_beta_deg(1:n,2), 3, time(1:n), 'filled')
+% title('M_{\alpha} versus M_{\beta} over time');
+% xlabel('M_{\alpha} [º/s^2]');
+% ylabel('M_{\beta}[º/s^2]');
+% c = colorbar;
+% c.Label.String = 'time (s)';
+% % axis('equal');
+% grid on;
 
  %% variable Malfa versus variable Mbeta over time
  
