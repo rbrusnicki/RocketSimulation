@@ -50,21 +50,33 @@ data2019(505:end,55) = 0;
 
 %% 4th step: INTERPOLATION
 
-dt = 0.005;
+dt = 0.01;
 Tf = data2018(end,1);
 m = size(data2018,2);
 
-data_2018_5ms = zeros(round(Tf/dt) + 1, m);
+data_2018_10ms = zeros(round(Tf/dt) + 1, m);
 
-data_2018_5ms(:,1) = [0:dt:Tf]';
+data_2018_10ms(:,1) = [0:dt:Tf]';
 
 for i = 2:m
-    data_2018_5ms(:,i) = interp1(data(:,1), data2018(:,i), data_2018_5ms(:,1));
+    data_2018_10ms(:,i) = interp1(data2018(:,1), data2018(:,i), data_2018_10ms(:,1));
 end
 
 
+dt = 0.010;
+Tf = data2019(end,1);
+m = size(data2019,2);
+
+data_2019_10ms = zeros(round(Tf/dt) , m);
+
+data_2019_10ms(:,1) = [0:dt:Tf]';
+
+for i = 2:m
+    data_2019_10ms(:,i) = interp1(data2019(:,1), data2019(:,i), data_2019_10ms(:,1));
+end
+
 %% 5th step: Save in file
 
-dlmwrite('2019.10.14_VS50_alcantara_5ms.csv', data_5ms(1:16601,:), 'delimiter', ',', 'precision', 15);
-
+dlmwrite('2018.12.04_VS50_alcantara_10ms.csv', data_2018_10ms(1:16401,:), 'delimiter', ',', 'precision', 15);
+dlmwrite('2019.10.14_VS50_alcantara_10ms.csv', data_2019_10ms(1:16401,:), 'delimiter', ',', 'precision', 15);
 

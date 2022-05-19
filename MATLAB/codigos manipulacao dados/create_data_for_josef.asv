@@ -1,0 +1,14 @@
+% load('2018.12.04_Greenland_east_with_DLR_att_100Hz.mat')
+load('2019.10.14_VS50_alcantara_10ms.csv')
+%%
+data2 = X2019_10_14_VS50_alcantara_10ms;
+%%
+data3(:,1) = data2(:,1);            % Time [s]
+data3(:,2:4) = data2(:,52:54);      % DLR attitude
+data3(:,5) = data2(:,38);
+data3(:,6) = data2(:,41);
+data3(:,7) = data2(:,43);
+data3(:,8) = data2(:,12);
+
+% save 28032019_112221.txt Untitled -ascii
+% csvwrite('20181204_Alcantra.csv',data_100hz)
