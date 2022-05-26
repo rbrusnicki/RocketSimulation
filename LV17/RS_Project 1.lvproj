@@ -219,13 +219,9 @@
 				<Item Name="Validate Semaphore Size.vi" Type="VI" URL="/&lt;vilib&gt;/Utility/semaphor.llb/Validate Semaphore Size.vi"/>
 				<Item Name="whitespace.ctl" Type="VI" URL="/&lt;vilib&gt;/Utility/error.llb/whitespace.ctl"/>
 			</Item>
-			<Item Name="Euler_ang2quat(SubVI).vi" Type="VI" URL="../Simulation/Euler_ang2quat(SubVI).vi"/>
+			<Item Name="Euler_ang2quat RAD(SubVI).vi" Type="VI" URL="../Simulation/Euler_ang2quat RAD(SubVI).vi"/>
 			<Item Name="lvanlys.dll" Type="Document" URL="/&lt;resource&gt;/lvanlys.dll"/>
-			<Item Name="quat2eulerXYZ.vi" Type="VI" URL="../Simulation/quat2eulerXYZ.vi"/>
-			<Item Name="RT_mem_i20(SubVI).vi" Type="VI" URL="../Simulation/RT_mem_i20(SubVI).vi"/>
-			<Item Name="RT_mem_i40(SubVI).vi" Type="VI" URL="../Simulation/RT_mem_i40(SubVI).vi"/>
 			<Item Name="RT_q2DCM (SubVI).vi" Type="VI" URL="../Simulation/RT_q2DCM (SubVI).vi"/>
-			<Item Name="Sub_predictor_v4(SubVI).vi" Type="VI" URL="../Simulation/Sub_predictor_v4(SubVI).vi"/>
 		</Item>
 		<Item Name="Build Specifications" Type="Build"/>
 	</Item>
