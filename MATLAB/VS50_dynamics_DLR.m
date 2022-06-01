@@ -19,7 +19,15 @@ load('2019.10.14_result6DOF_VS50_S44inert_alcantara_massaDLR_alfa1_100hz.mat');
 % load('vento_2.mat');
 load('vento_4.mat');
 
-load('scheduled_gains_PID.mat');
+% load('scheduled_gains_PID.mat');
+load('PID_tuned_10ms');                     % THE CHOOSEN ONE!!!
+% load('IPD_robust_10ms.csv'); % HORRIVEL
+
+load('pid_smooth.mat');
+% load('GUI_PD_tuned.mat');
+% load('scheduled_gui_IPD.mat');
+% load('GUI_PID_10ms.csv');
+% GUI_PID_10ms = X2GUI_PID_10ms;
 
 % Constant values
 
@@ -33,9 +41,9 @@ Sref = pi * (Dref/2)^2;          % Vehicle reference area                       
 
 
 % Disturbances
-Nozzle_misalignment = pi/180 * [ 0  0.0 ];    % Desalinhamento da tubeira [X-pitch, Y-yaw]      [rad]
+Nozzle_misalignment = pi/180 * [ 0  0.0 ];  % Desalinhamento da tubeira [X-pitch, Y-yaw]      [rad]
 Nozzle_eccentricity = 1e-3 * [ 0  0 ];      % Ecentricidade da tubeira [X, Y]                 [m]
-dl = 0.00  * pi/180;                         % Fins Misalignment                              [rad]
+dl = 0.0  * pi/180;                         % Fins Misalignment                              [rad]
 
 
 % Control data
@@ -73,15 +81,22 @@ lon_ref_deg = data_100hz(:,41);          % Trajectory longitude reference       
 alt_ref = data_100hz(:,38) * 1e3;        % Trajectory altitude reference                    [m]
 
 lla_smooth = [latd_ref_deg, lon_ref_deg, alt_ref];                 % Correction necessary for the current input used
+for i = 1:4
+    lla_smooth(i,3) = mean(alt_ref(1:i+5));
+end
+for i = 5:n-5
+    lla_smooth(i,3) = mean(alt_ref(i-4:i+5));
+end
+alt_ref = lla_smooth(:,3);
 for i = 70:n-70
     lla_smooth(i,1) = mean(latd_ref_deg(i-69:i+70));
     lla_smooth(i,2) = mean(lon_ref_deg(i-69:i+70));
-    lla_smooth(i,3) = mean(alt_ref(i-69:i+70));
+    lla_smooth(i,3) = mean(alt_ref(i-69:i+70))-1.81017;
 end
 latd_ref_deg = lla_smooth(:,1);
 lon_ref_deg = lla_smooth(:,2);
 alt_ref = lla_smooth(:,3);
-clear('lla_smooth');
+% clear('lla_smooth');
 
 mach_number   = data_100hz(:,39);        % Velocity in Mach number for nominal trajectory   [-] 
 pitch_ref_deg = data_100hz(:,52);        % DLR Pitch reference                              [º]
@@ -103,10 +118,11 @@ latd_ref = latd_ref_deg * pi/180;        % Trajectory geodetic latitude referenc
 lon_ref  =  lon_ref_deg * pi/180;        % Trajectory longitude reference                   [rad]
 
 %% Dados variantes de voo (LOGDATA)
-n = 13101;
+n = 8250;
 
 
 TVA_cmd     = zeros(n,2);               % TVA nozzle pitch and yaw angles commands in DLR NRS. [rad]    
+TVAf        = zeros(n,2);               % Filtered TVA nozzle commands in DLR NRS.             [rad]    
 Act_cmd_b   = zeros(n,2);               % Nozzle angle command for actuators at 315º and  225º [rad]
 Act_b       = zeros(n,2);               % Nozzle angle for actuators at 315º and at 225º       [rad]
 latd        = zeros(n,1);               % Geodetic Latitude of the Vehicle during flight       [rad]
@@ -226,10 +242,11 @@ q(1,:) = [q0 q1 q2 q3];
 % n=8201;
 % V_wind      = zeros(n,3);           % Wind Velocity vector in DLR NRS [m/s]
 % V_wind(1:n,1:2) = vento_4(1:n,2:3); % Wind from files
-V_mod = 0; % [m/s]
-V_azi = -22.5; % [º]
 
+V_mod = 16; % [m/s]
+V_azi = 50; % [º]
 V_wind    = [-V_mod*cos(V_azi * pi/180)*ones(n,1) V_mod*sin(V_azi * pi/180)*ones(n,1)  zeros(n,1)];
+
 %V_wind = [zeros(n,1) 10*ones(n,1)  zeros(n,1)];
 
 % Malfa and Mbeta disturbances gains
@@ -239,7 +256,7 @@ Gain_b = 1.0;
 %%
 t_off = 700;
 aux_flag = 0;
-n = 8250;
+n = 8200;
 
 for i = 1:(n-1)     
     %% Pressão Dinâmica e Pressão Atmosférica local
@@ -252,12 +269,41 @@ for i = 1:(n-1)
     [AoA(i,:), Speed_Att(i,:)] =  Angle_Of_Attack_in_DLR_NRS( V(i,:), V_wind(i,:), q(i,:));
     AoA_deg(i,:) = AoA(i,:) * 180/pi;
 %     aoa = AoA_deg(i,:)
-    
+
+    %% Low Pass Filter
+    % auxiliar variables
+    if i > 1
+        TVA_1 = TVA_cmd(i-1,:);
+        TVAf_1 = TVAf(i-1,:);
+    end
+    if i > 2
+        TVA_2 = TVA_cmd(i-2,:);
+        TVAf_2 = TVAf(i-2,:);
+    end
+    if i > 3
+        TVA_3 = TVA_cmd(i-3,:);
+        TVAf_3 = TVAf(i-3,:);
+    end
+    if i > 4
+        TVA_4 = TVA_cmd(i-4,:);
+        TVAf_4 = TVAf(i-4,:);
+    end
+    if i == 1
+        [TVAf(i,:)] = LPF2d([0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0]);
+    elseif i == 2
+        [TVAf(i,:)] = LPF2d(TVA_1, [0,0], [0,0], [0,0], TVAf_1, [0,0], [0,0], [0,0]);
+    elseif i == 3
+        [TVAf(i,:)] = LPF2d(TVA_1, TVA_2, [0,0], [0,0], TVAf_1, TVAf_2, [0,0], [0,0]);
+    elseif i == 4
+        [TVAf(i,:)] = LPF2d(TVA_1, TVA_2, TVA_3, [0,0], TVAf_1, TVAf_2, TVAf_3, [0,0]);
+    else
+        [TVAf(i,:)] = LPF2d(TVA_1, TVA_2, TVA_3, TVA_4, TVAf_1, TVAf_2, TVAf_3, TVAf_4);
+    end
     %% Command Conversion from TVA Comand in DLR NRS To Actuator Command
     if i == 1
-        Act_cmd_b(i,:) = Command_Conversion_TVA_To_ACT(TVA_cmd(i,:),         [0, 0], angles(i,3),        0);
+        Act_cmd_b(i,:) = Command_Conversion_TVA_To_ACT(TVAf(i,:),      [0, 0], angles(i,3),        0);
     else
-        Act_cmd_b(i,:) = Command_Conversion_TVA_To_ACT(TVA_cmd(i,:), TVA_cmd(i-1,:), angles(i,3), W_b(i,3));
+        Act_cmd_b(i,:) = Command_Conversion_TVA_To_ACT(TVAf(i,:), TVAf(i-1,:), angles(i,3), W_b(i,3));
     end
 %     act_cmd_b = Act_cmd_b(i,:)
     %% Act's command input to Act's plant output
@@ -538,8 +584,7 @@ for i = 1:(n-1)
     e_1_dev = ( e_1(i+1) - e_1(i) ) / dt;       %not used
     e_2_dev = ( e_2(i+1) - e_2(i) ) / dt;       %not used
     e_3_dev = ( e_3(i+1) - e_3(i) ) / dt;       %not used
-
- 
+    
     %e_1 left_right_error
     %positive values means the rocket should rotate positively around up-axis
     %to correct its trajectory
@@ -559,6 +604,7 @@ for i = 1:(n-1)
     if(GUI_PID(i,3) > 5.82)
             GUI_PID(i,1:3) =  [ 0.41,  0.0046,  5.82 ];
     end
+    
 %     GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 10,  1,  200 ] * 1e-3;     %k_acc is almost the same for both axes
 %     if(GUI_PID(i,3) > 4)
 %         GUI_PID(i,1:3) =  2*[ 0.1,  0.001,  2 ];
@@ -566,15 +612,44 @@ for i = 1:(n-1)
 
 %         Gui_PID(i,1:3) =  15.6/norm(acc_b(i,:))  * [ 0.8e-3,  8.9e-6,  18e-3 ]; 
 
-    guiP = GUI_PID(i,1);
-    guiI = GUI_PID(i,2);
-    guiD = GUI_PID(i,3);
+%     guiP = GUI_PID(i,1);
+%     guiI = GUI_PID(i,2);
+%     guiD = GUI_PID(i,3);
+
+
+%         guiP = GUI_PD_tuned(i,1);
+%         guiI = GUI_PD_tuned(i,2);
+%         guiD = GUI_PD_tuned(i,3);
+
+% %     Tuned PID GUI GAINS
+%     guiP = GUI_PID_10ms(i,1);
+%     guiI = GUI_PID_10ms(i,2);
+%     guiD = GUI_PID_10ms(i,3);
+%     guiT = GUI_PID_10ms(i,4);
+
+%     guiP = scheduled_gui_IPD(i,2);
+%     guiI = scheduled_gui_IPD(i,1);
+%     guiD = scheduled_gui_IPD(i,3);
+
 
     %deltas in degrees
-    delta_azi(i) = (guiP * e_1(i+1) + guiI * e_1_int +  e_1_dev);
-    delta_ele(i) = (guiP * e_2(i+1) + guiI * e_2_int +  e_2_dev);  
-%     delta_ele(i) = -(guiP * e_3(i+1) + guiI * e_3_int +  e_3_dev); 
+%     delta_azi(i) = (guiP * e_1(i+1) + guiI * e_1_int  + guiD * e_1_dev);
+%     delta_ele(i) = (guiP * e_2(i+1) + guiI * e_2_int  + guiD * e_2_dev);  
+% %     delta_ele(i) = -(guiP * e_3(i+1) + guiI * e_3_int +  e_3_dev); 
 
+
+    guiP = pid_smooth(i,1);
+    guiI = pid_smooth(i,2);
+    guiD = pid_smooth(i,3);
+    guiT = pid_smooth(i,4);
+
+    if(guiT > 0)
+        delta_azi(i) = guiP * e_1(i+1) + (guiD/guiT) * (e_1(i+1) - e_1(i)) - delta_azi(i-1)* (dt - guiT)/guiT;
+        delta_ele(i) = guiP * e_2(i+1) + (guiD/guiT) * (e_2(i+1) - e_2(i)) - delta_ele(i-1)* (dt - guiT)/guiT;
+    else
+        delta_azi(i) = 0;
+        delta_ele(i) = 0;
+    end
     
     corr_angle_deg = 3;
     if ( liftoffcounter <= 15)               
@@ -585,7 +660,7 @@ for i = 1:(n-1)
         corr_angle_deg = 6;
     elseif (liftoffcounter > 60 && liftoffcounter <= 65)
        corr_angle_deg = 10;
-   elseif (liftoffcounter > 65 && liftoffcounter <= 70)
+    elseif (liftoffcounter > 65 && liftoffcounter <= 70)
        corr_angle_deg = 5;
     elseif (liftoffcounter > 70 )
        corr_angle_deg = 3;
@@ -602,16 +677,14 @@ for i = 1:(n-1)
     elseif(delta_ele(i) < -corr_angle_deg)
         delta_ele(i) = -corr_angle_deg;
     end
- 
-    
-    if( mod(i,10) == 1)
+     
+    if( 1 )%mod(i,10) == 1)
         if((liftoffcounter > 5 && liftoffcounter < 15) || (liftoffcounter > 45 && liftoffcounter < 75))
-            
-            for ii = 0:9
+     
+            for ii = 0:0%9
                 %---------------------------------------------------------------------- OK
                 % This section computes the reference azimuth and reference elevation
                 DCM = angle2dcm(pitch_ref(i+1+ii), yaw_ref(i+1+ii), roll_ref(i+1+ii), 'XYZ');
-
                 [p, y, r] = dcm2angle(DCM, 'ZYZ');
 
                 azi_ref = -p;
@@ -619,15 +692,12 @@ for i = 1:(n-1)
                 til_ref = r;
 
                 %---------------------------------------------------------------------- OK
-
                 new_azi_ref = azi_ref - delta_azi(i) * pi/180;
-
                 if ele_ref > 0
                     new_ele_ref = ele_ref - delta_ele(i)* pi/180;             
                 else
                     new_ele_ref = ele_ref + delta_ele(i)* pi/180;
                 end
-
                 DCM_new = angle2dcm( -new_azi_ref, pi/2-new_ele_ref, til_ref, 'ZYZ');
 
                 [p, y, r] = dcm2angle(DCM_new, 'XYZ');
@@ -636,7 +706,7 @@ for i = 1:(n-1)
                 new_roll_ref_deg(i+1+ii)  = r * 180/pi;
             end
         else
-            for ii = 0:9
+            for ii = 0:0%9
                 new_pitch_ref_deg(i+1+ii) = pitch_ref(i) * 180/pi;
                 new_yaw_ref_deg(i+1+ii)   = yaw_ref(i) * 180/pi;
                 new_roll_ref_deg(i+1+ii)  = roll_ref(i) * 180/pi;
@@ -645,12 +715,51 @@ for i = 1:(n-1)
             e_2_int = 0;
         end
     end
+
+%     if((liftoffcounter > 5 && liftoffcounter < 15) || (liftoffcounter > 45 && liftoffcounter < 75))
+% 
+%         %---------------------------------------------------------------------- OK
+%         % This section computes the reference azimuth and reference elevation
+%         DCM = angle2dcm(pitch_ref(i+1), yaw_ref(i+1), roll_ref(i+1), 'XYZ');
+% 
+%         [p, y, r] = dcm2angle(DCM, 'ZYZ');
+% 
+%         azi_ref = -p;
+%         ele_ref = pi/2 - y;
+%         til_ref = r;
+% 
+%         %---------------------------------------------------------------------- OK
+% 
+%         new_azi_ref = azi_ref - delta_azi(i) * pi/180;
+% 
+%         if ele_ref > 0
+%             new_ele_ref = ele_ref - delta_ele(i)* pi/180;             
+%         else
+%             new_ele_ref = ele_ref + delta_ele(i)* pi/180;
+%         end
+% 
+%         DCM_new = angle2dcm( -new_azi_ref, pi/2-new_ele_ref, til_ref, 'ZYZ');
+% 
+%         [p, y, r] = dcm2angle(DCM_new, 'XYZ');
+%         new_pitch_ref_deg(i+1) = p * 180/pi;
+%         new_yaw_ref_deg(i+1)   = y * 180/pi;
+%         new_roll_ref_deg(i+1)  = r * 180/pi;
+%      
+%     else
+%       
+%         new_pitch_ref_deg(i+1) = pitch_ref(i) * 180/pi;
+%         new_yaw_ref_deg(i+1)   = yaw_ref(i) * 180/pi;
+%         new_roll_ref_deg(i+1)  = roll_ref(i) * 180/pi;
+%     
+%         e_1_int = 0;
+%         e_2_int = 0;
+%     end
     
     %To turn guidance on/off, comment/uncoment the next 3 lines:
     
-%     pitch_ref_deg(i+1) = new_pitch_ref_deg(i+1);
-%     yaw_ref_deg(i+1)   = new_yaw_ref_deg(i+1);
-%     roll_ref_deg(i+1)  = new_roll_ref_deg(i+1);
+    pitch_ref_deg(i+1) = new_pitch_ref_deg(i+1);
+    yaw_ref_deg(i+1)   = new_yaw_ref_deg(i+1);
+    roll_ref_deg(i+1)  = new_roll_ref_deg(i+1);
      
     
 %% ATTITUDE CONTROL - @TO DO: Should be removed from this simulation!!   
@@ -673,10 +782,10 @@ for i = 1:(n-1)
        corr_angle_deg = 3;                                     
     elseif (liftoffcounter > 45 && (liftoffcounter <= 50))
        corr_angle_deg = 3 + (7/5) * (liftoffcounter - 45); 
-    elseif (liftoffcounter > 50 && (liftoffcounter <= 60))  % 70
+    elseif (liftoffcounter > 50 && (liftoffcounter <= 70))  % 70
        corr_angle_deg = 10;    
-    elseif (liftoffcounter > 60 && (liftoffcounter <= 70))  % 70 - 75
-       corr_angle_deg = 10 - 1 * (liftoffcounter - 60);     % 10 - 2 * (...-70);
+    elseif (liftoffcounter > 70 && (liftoffcounter <= 75))  % 70 - 75
+       corr_angle_deg = 10 - (1/0.5) * (liftoffcounter - 70);     % 10 - 2 * (...-70);
     else
        corr_angle_deg = 0;
     end    
@@ -730,16 +839,21 @@ for i = 1:(n-1)
     pitch_ref_deg(i+1) = pitch_desired_deg;
     yaw_ref_deg(i+1) = yaw_desired_deg;
 
-    P = PID_deg(i,1);
-    I = PID_deg(i,2);
-    D = PID_deg(i,3);
-
-%     -36.2143  -27.1979   -8.4593    % gamma = 0.5
-%      -0.0152   -8.6767   -4.4036    % gamma = 0.00005
+% %     Josef Ettl Gains
+%     P = PID_deg(i,1);
+%     I = PID_deg(i,2);
+%     D = PID_deg(i,3);
     
-%     P = 0.0152; 
-%     I = 8.6767; 
-%     D = 4.4036; 
+%     % PID tuned gains
+    P = -PID_tuned_10ms(i,1);
+    I = -PID_tuned_10ms(i,2);
+    D = -PID_tuned_10ms(i,3);
+
+% %     segunda tentative PID robusto - HORRIVEL!
+%      I = -IPD_robust_10ms(i,1);
+%      P = -IPD_robust_10ms(i,2);
+%      D = -IPD_robust_10ms(i,3);
+
     
     % TESTE DO PID ROBUSTO - TESE DE MESTRADO ################################################################ TESE DE MESTRADO
 %    I = -scheduled_gains_PID(i,1);
@@ -886,7 +1000,7 @@ cb.Label.String = 'Altitude (km)';
 axis('equal');
 grid on;
 grid minor
-xlim([lon(1)-0.0002 lon(n)+0.0002])
+xlim([lon(1)-0.0002, lon(n)+0.0002])
 
 % Rough trajectory plane - SCATTER
 subplot(1,2,2);
@@ -1006,11 +1120,13 @@ pause(0.00001);
 frame_h = get(handle(gcf),'JavaFrame');
 set(frame_h,'Maximized',1);
 subplot(2,1,1);
-plot(time(1:n,1), angles_deg(1:n,1), 'b')
-hold
+% plot(time(1:n,1), angles_deg(1:n,1), 'k')
+% hold
 plot(time(1:n,1), Speed_Att(1:n,1)*180/pi,  'Color',[0.0, 0.85, 1.0]);
+hold
 plot(time(1:n,1), pitch_ref_deg(1:n,1),'Color',[0.0, 0.0, 0.66])
-legend('Pitch', 'Speed-pitch', 'Pitch-Nom', 'Location','east')
+plot(time(1:n,1), angles_deg(1:n,1), 'k')
+legend('Speed-pitch', 'Pitch-Nom','Pitch', 'Location','east')
 low = min( [ min(angles_deg(1:n,1)), min(pitch_ref_deg(1:n,1)) ] );
 high = max(max(angles_deg(1:n,1)),max(pitch_ref_deg(1:n,1)));
 ylim([low-1 high+1]);
@@ -1019,11 +1135,11 @@ title("Attitude");
 grid minor
 
 subplot(2,1,2);
-plot(time(1:n,1), angles_deg(1:n,2), 'Color',[0.0, 0.66, 0.0])
-hold
 plot(time(1:n,1), Speed_Att(1:n,2)*180/pi,'Color',[0.1, 0.9, 0.1]);
+hold
 plot(time(1:n,1), yaw_ref_deg(1:n,1),'Color',[0.0, 0.33, 0.0])
-legend('Yaw', 'Speed-yaw', 'Yaw-Nom', 'Location','east')
+plot(time(1:n,1), angles_deg(1:n,2), 'Color','k')
+legend('Speed-yaw', 'Yaw-Nom','Yaw', 'Location','east')
 low = min(min(angles_deg(1:n,2)),min(yaw_ref_deg(1:n,1)));
 high = max(max(angles_deg(1:n,2)),max(yaw_ref_deg(1:n,1)));
 ylim([low-1 high+1]);
@@ -1031,7 +1147,11 @@ ylabel("Yaw-axis [°]")
 xlabel("Time (s)")
 grid minor
 
+%% Comparação para averiguar a eliminação do cross-couple
+
 figure()
+frame_h = get(handle(gcf),'JavaFrame');
+set(frame_h,'Maximized',1);
 plot(TVA_cmd);
 hold on;
 plot(ax./M_beta);
