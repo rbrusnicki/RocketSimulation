@@ -421,6 +421,7 @@ AddOutputFilter chunkFilter
 			<Item Name="lateral_and_vertical_acc.vi" Type="VI" URL="../Simulation/lateral_and_vertical_acc.vi"/>
 			<Item Name="delta_ae_guidance (SubVI).vi" Type="VI" URL="../Simulation/delta_ae_guidance (SubVI).vi"/>
 			<Item Name="TVA (SubVI).vi" Type="VI" URL="../Simulation/TVA (SubVI).vi"/>
+			<Item Name="TVA_cmd_LPF (SubVI).vi" Type="VI" URL="../../../SIM_SICA_HIL/TVA_cmd_LPF (SubVI).vi"/>
 		</Item>
 		<Item Name="BR ACT" Type="Folder">
 			<Item Name="BR ACT manual cmd (SubVI).vi" Type="VI" URL="../BR ACT/BR ACT manual cmd (SubVI).vi"/>
