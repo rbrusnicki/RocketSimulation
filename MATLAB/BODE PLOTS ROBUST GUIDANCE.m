@@ -1,28 +1,26 @@
-% load("scheduled_gains_IPD.mat");
+load("scheduled_gains_IPD.mat");
 load("vs50_contol_system_data_base_plots\M_alpha_beta_deg.mat");
-load("M_gamma.mat");
-load("GUI_PID.mat");
-load("PID_deg.mat");
+load('scheduled_gui_IPD.mat');
+load('M_gamma.mat');
 
 Ma = M_alpha_beta_deg(100:100:8200,1);
 Mb = M_alpha_beta_deg(100:100:8200,2);
 Mg = M_gamma(100:100:8200,1);
 
 % ROBUSTO
-% KI = -scheduled_gains_PID(:,1);
-% KP = -scheduled_gains_PID(:,2);
-% KD = -scheduled_gains_PID(:,3);
+KI = -scheduled_gains_PID(100:100:8200,1);
+KP = -scheduled_gains_PID(100:100:8200,2);
+KD = -scheduled_gains_PID(100:100:8200,3);
+
+GUI_KP = scheduled_gui_IPD(100:100:8200,2);
+GUI_KI = scheduled_gui_IPD(100:100:8200,1);
+GUI_KD = scheduled_gui_IPD(100:100:8200,3);
+
 
 % JOSEF ETTL
-KP = PID_deg(100:100:8200,1);
-KI = PID_deg(100:100:8200,2);
-KD = PID_deg(100:100:8200,3);
-
-GUI_KP = 10 * GUI_PID(100:100:8200,1);
-GUI_KI = 10 * GUI_PID(100:100:8200,2);
-GUI_KD = 10 * GUI_PID(100:100:8200,3);
-
-% GUI_PID(i,1:3) =  [ 0.41,  0.0046,  5.82 ];
+% KP = PID_deg(:,1);
+% KI = PID_deg(:,2);
+% KD = PID_deg(:,3);
 
 s = tf('s');
 
@@ -46,12 +44,12 @@ Wcp = zeros(82,1);
 Gm_dB  = zeros(82,1);
 
 %%
+% figure(1)
 % figure(2)
-hold on;
+% hold on;
 
 % Define the color order based on the number of models
 col = parula(83); %
-
 for i=5:15
     %ATT
     ATT_Plant = -Mb(i) / (s^2 - Ma(i)) * TVA * DMARS * LPF * LPF;
@@ -59,9 +57,9 @@ for i=5:15
     ATT_PID2 = (KP(i) + KI(i)*(1/s) + KD(i)*s);
     
 %     OL(i/100) = PID * Plant;
-    ATT_OL2 = ATT_PID2 * ATT_Plant;
+    ATT_OL2(i) = ATT_PID2 * ATT_Plant;
     
-    ATT_CL = ATT_OL2 / ( 1 + ATT_OL2 );
+    ATT_CL = ATT_OL2(i) / ( 1 + ATT_OL2(i) );
     
     %GUI
     GUI_PLANT = ATT_CL * (Mg(i)/s^2);
@@ -76,9 +74,9 @@ for i=5:15
     GUI_CL = GUI_OL / ( 1 + GUI_OL );
     [Gm(i),Pm(i),Wcg(i),Wcp(i)] = margin(GUI_CL);
     Gm_dB(i) = 20*log10(Gm(i));
-    
-% %     bode(GUI_OL, {1e-3,1e2}, options, 'b');
-%     bode(GUI_CL,{1e-3,1e2}, options, 'b');
+
+% %     bode(GUI_OL, {1e-2,1e2}, options, 'b');
+%     bode(GUI_CL,{1e-2,1e2}, options, 'b');
 %     % Find handles of all lines in the figure that have the color blue
 %     lineHandle = findobj(gcf,'Type','line','-and','Color','b');
 %     % Change the color to the one you defined
@@ -94,9 +92,9 @@ for i=45:75
     ATT_PID2 = (KP(i) + KI(i)*(1/s) + KD(i)*s);
     
 %     OL(i/100) = PID * Plant;
-    ATT_OL2 = ATT_PID2 * ATT_Plant;
+    ATT_OL2(i) = ATT_PID2 * ATT_Plant;
     
-    ATT_CL = ATT_OL2 / ( 1 + ATT_OL2 );
+    ATT_CL = ATT_OL2(i) / ( 1 + ATT_OL2(i) );
     
     %GUI
     GUI_PLANT = ATT_CL * (Mg(i)/s^2);
@@ -111,9 +109,9 @@ for i=45:75
     GUI_CL = GUI_OL / ( 1 + GUI_OL );
     [Gm(i),Pm(i),Wcg(i),Wcp(i)] = margin(GUI_CL);
     Gm_dB(i) = 20*log10(Gm(i));
-    
-% %     bode(GUI_OL, {1e-3,1e2}, options, 'b');
-%     bode(GUI_CL,{1e-3,1e2}, options, 'b');
+
+% %     bode(GUI_OL, {1e-2,1e2}, options, 'b');
+%     bode(GUI_CL,{1e-2,1e2}, options, 'b');
 %     % Find handles of all lines in the figure that have the color blue
 %     lineHandle = findobj(gcf,'Type','line','-and','Color','b');
 %     % Change the color to the one you defined
@@ -121,20 +119,69 @@ for i=45:75
 %     drawnow();
     disp(i);
 end
-% % title({'Comparison of Current Guidance Open Loop Bode Plot (45s - 75s)'});
-% title({'Comparison of Current Guidance Closed Loop Bode Plot (45s - 75s)'});
-% xlim([1e-3 1e1])
+% % title({'Comparison of Robust Guidance Open Loop Bode Plot (5s - 15s)'});
+% title({'Comparison of Robust Guidance Closed Loop Bode Plot (45s - 75s)'});
+% xlim([1e-2 1e1])
 % ylim([-180,360])
 
+Robust_gui_metrics = [Gm_dB,Gm,Pm,Wcg,Wcp];
+
+%%
+
+figure(3);
+% figure(4);
+hold on;
+
+for i=45:75
+    %ATT
+    ATT_Plant = -Mb(i) / (s^2 - Ma(i)) * TVA * DMARS * LPF * LPF;
+%     PID = pid( -KP(i), -KI(i), -KD(i) );
+    ATT_PID2 = (KP(i) + KI(i)*(1/s) + KD(i)*s);
+    
+%     OL(i/100) = PID * Plant;
+    ATT_OL2(i) = ATT_PID2 * ATT_Plant;
+    
+    ATT_CL(i) = ATT_OL2(i) / ( 1 + ATT_OL2(i) );
+    
+    %GUI
+    GUI_PLANT = ATT_CL(i) * (Mg(i)/s^2);
+%     GUI_PID = pid( -GUI_KP(i), -GUI_KI(i), -GUI_KD(i) );
+    GUI_PID2 = (GUI_KP(i) + GUI_KI(i)*(1/s) + GUI_KD(i)*s);
+
+% GUIDANCE CLOSED LOOP:
+    GUI_OL = GUI_PID2 * GUI_PLANT;
+%     GUI_CL(i) = feedback(GUI_PID*GUI_PLANT,1);
+    
+% GUIDANCE CLOSED LOOP:
+    GUI_CL = GUI_OL / ( 1 + GUI_OL );
+
+%     bode(GUI_OL,{1e-2,1e2}, options, 'b');
+    bode(GUI_CL,{1e-2,1e2}, options, 'b');
+    % Find handles of all lines in the figure that have the color blue
+    lineHandle = findobj(gcf,'Type','line','-and','Color','b');
+    % Change the color to the one you defined
+    set(lineHandle,'Color',col(i,:),'linewidth', 2);
+    drawnow();
+end
+% title({'Comparison of Robust Guidance Open Loop Bode Plot (45s - 75s)'});
+title({'Comparison of Robust Guidance Closed Loop Bode Plot (45s - 75s)'});
+xlim([1e-2 1e1])
+ylim([-180,360])
 
 
-Current_gui_metrics = [Gm_dB,Gm,Pm,Wcg,Wcp];
+%% OPEN LOOP
 
-
-
-
-
-
+%%
+for i=45:75
+    bode(GUI_OL(i),options, 'b');
+    % Find handles of all lines in the figure that have the color blue
+    lineHandle = findobj(gcf,'Type','line','-and','Color','b');
+    % Change the color to the one you defined
+    set(lineHandle,'Color',col(i,:),'linewidth', 2);
+%     step(-CL(i));
+    drawnow();
+    title({'Comparison of Guidance Open Loop Bode Plot','(5s - 15s) and (45s - 75s)'});
+end
 
 %% CLOSED LOOP
 figure()
@@ -161,6 +208,41 @@ for i=45:75
 %     step(-CL(i));
     drawnow();
     title({'Comparison of Guidance Closed Loop Bode Plot','(5s - 15s) and (45s - 75s)'});
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% OPEN LOOP
+figure()
+hold on;
+
+% Define the color order based on the number of models
+col = parula(83); %
+    
+for i=1:21
+    bode(OL(i),options, 'b');
+    % Find handles of all lines in the figure that have the color blue
+    lineHandle = findobj(gcf,'Type','line','-and','Color','b');
+    % Change the color to the one you defined
+    set(lineHandle,'Color',col(i,:),'linewidth', 2);
+%     step(-CL(i));
+    drawnow();
+    title('\bf Comparison of Guidance Open Loop Bode Plot - (1s - 21s)');
 end
 %%
 cb = colorbar('Location','eastoutside')

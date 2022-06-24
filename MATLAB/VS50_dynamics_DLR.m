@@ -600,10 +600,18 @@ for i = 1:(n-1)
     %flight) to correct its trajectory
 
     %gains in degrees
-    GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 41,  0.46,  582 ] * 1e-3;
-    if(GUI_PID(i,3) > 5.82)
-            GUI_PID(i,1:3) =  [ 0.41,  0.0046,  5.82 ];
+    GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 3,  0,  60 ] * 1e-1;
+    if(i <= 756)
+            GUI_PID(i,1:3) =  [ 28,  0,  540 ] * 1e-1;
     end
+    if(i >= 7500)
+            GUI_PID(i,1:3) = GUI_PID(7500,1:3);
+    end
+    
+%     GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 41,  0.46,  582 ] * 1e-3;
+%     if(GUI_PID(i,3) > 5.82)
+%             GUI_PID(i,1:3) =  [ 0.41,  0.0046,  5.82 ];
+%     end
     
 %     GUI_PID(i,1:3) =  1/norm(k_acc(i,1))  * [ 10,  1,  200 ] * 1e-3;     %k_acc is almost the same for both axes
 %     if(GUI_PID(i,3) > 4)
@@ -840,14 +848,14 @@ for i = 1:(n-1)
     yaw_ref_deg(i+1) = yaw_desired_deg;
 
 % %     Josef Ettl Gains
-%     P = PID_deg(i,1);
-%     I = PID_deg(i,2);
-%     D = PID_deg(i,3);
+    P = PID_deg(i,1);
+    I = PID_deg(i,2);
+    D = PID_deg(i,3);
     
 %     % PID tuned gains
-    P = -PID_tuned_10ms(i,1);
-    I = -PID_tuned_10ms(i,2);
-    D = -PID_tuned_10ms(i,3);
+%     P = -PID_tuned_10ms(i,1);
+%     I = -PID_tuned_10ms(i,2);
+%     D = -PID_tuned_10ms(i,3);
 
 % %     segunda tentative PID robusto - HORRIVEL!
 %      I = -IPD_robust_10ms(i,1);
